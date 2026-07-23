@@ -36,8 +36,8 @@ let session=JSON.parse(localStorage.getItem(SESSION)||sessionStorage.getItem(SES
 const user=()=>db.users.find(x=>x.id===session?.userId);
 function localSave(){localStorage.setItem(DB,JSON.stringify(db));}
 async function apiPost(payload){
-  if(!API_URL || API_URL.includes("https://script.google.com/macros/s/AKfycbzj-8D5NIf5qH2CRcYzFo25HhrHP0Zk3wUCGKkh_ChpUjUovaQJQFXCDrpfVbHYikFQ/exec")) return {success:false,message:"API URL not configured"};
-  try{
+ if (!API_URL || API_URL.includes("PASTE_YOUR"))
+    return {success:false,message:"API URL not configured"};
     const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)});
     return await r.json();
   }catch(e){console.error(e);return {success:false,error:e.toString()};}
