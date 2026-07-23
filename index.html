@@ -48,7 +48,12 @@ async function syncDatabase(){
   clearTimeout(cloudSyncTimer);
   cloudSyncTimer=setTimeout(async()=>{
     const result=await apiPost({action:"syncDatabase",database:db});
-    if(!result.success) toast("Cloud sync failed — local copy retained");
+   if(result.success){
+    toast("✅ Cloud sync successful");
+}else{
+    console.log(result);
+    alert(JSON.stringify(result,null,2));
+}
   },250);
 }
 const save=()=>{syncDatabase();};
