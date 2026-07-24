@@ -111,38 +111,23 @@ function statusNorm(v){let s=norm(v);if(["done","completed","complete","closed"]
 function priorityNorm(v){let s=norm(v);if(s==="high"||s==="urgent")return"HIGH";if(s==="low")return"LOW";return"MEDIUM"}
 function renderLogin(){app.innerHTML=`<main class="login"><section class="login-card"><h1>🤖 Amba AI Task Manager</h1><p>Smart task management with Excel work allocation</p><form id="loginForm"><div class="group"><label>Email</label><input id="email" type="email" required></div><div class="group"><label>Password</label><input id="password" type="password" required></div><div style="display:flex;align-items:center;gap:8px;margin:12px 0 18px"><input id="rememberMe" type="checkbox" style="width:auto"><label for="rememberMe" style="margin:0;font-weight:600">Remember Me</label></div><button class="primary" style="width:100%">Login</button></form><div class="demo"><b>Admin:</b> admin@amba.local / Admin@123<br><br><b>Employee:</b> rahul@amba.local / Employee@123</div></section></main>`;loginForm.onsubmit=e=>{e.preventDefault();let x=db.users.find(u=>u.email.toLowerCase()===email.value.toLowerCase()&&u.password===password.value);if(!x)return toast("Invalid login");session={userId:x.id};let remember=document.getElementById("rememberMe")?.checked;if(remember){localStorage.setItem(SESSION,JSON.stringify(session));localStorage.setItem(REMEMBER,"true")}else{sessionStorage.setItem(SESSION,JSON.stringify(session));localStorage.removeItem(SESSION);localStorage.removeItem(REMEMBER)}renderApp()}}
 function renderApp(){let u=user();app.innerHTML=`<div class="layout">
-
 <div class="sidebar">
-
 <h2>🏥 Amba AI</h2>
-
 <a href="#" id="menuDashboard">📊 Dashboard</a>
-
 <a href="#" id="menuMaster">📚 Master Tasks</a>
-
 <a href="#" id="menuDaily">📅 Daily Tasks</a>
-
 <a href="#" id="menuWeekly">📆 Weekly Tasks</a>
-
 <a href="#" id="menuMonthly">🗓 Monthly Tasks</a>
-
 <a href="#" id="menuEmployees">👥 Employees</a>
-
 <a href="#" id="menuReports">📈 Reports</a>
-
 <a href="#" id="menuSettings">⚙️ Settings</a>
-
 <hr>
-
 <a href="#" id="logoutSide">🚪 Logout</a>
-
 </div>
-
 <div class="content"><header class="top"><div><h1>🤖 Amba AI Task Manager V6</h1><div class="muted">Welcome ${esc(u.name)} · ${u.role}</div></div><div class="actions"><div class="notice"><button class="secondary" id="noticeBtn">🔔 <span id="badge"></span></button><div class="menu" id="noticeMenu"><div class="menu-head"><b>Notifications</b><button class="secondary" id="readAll">Read all</button></div><div id="noticeList"></div></div></div><button class="secondary" id="theme">🌙</button><button class="secondary" id="cloudSync">☁️ Sync</button><button class="secondary" id="logout">Logout</button><button class="primary" id="add">+ Add Task</button></div></header>
 <section class="stats"><div class="stat"><span>Total Tasks</span><strong id="total">0</strong></div><div class="stat"><span>Pending</span><strong id="pending">0</strong></div><div class="stat"><span>In Progress</span><strong id="progress">0</strong></div><div class="stat"><span>Completed</span><strong id="done">0</strong></div><div class="stat"><span>Overdue</span><strong id="overdue">0</strong></div></section>
 ${u.role==="ADMIN"?`<section class="panel upload-box" style="margin-bottom:18px"><h2>📊 Excel Work Allocation Upload</h2><p class="muted">Upload an Excel file to create and allocate tasks automatically by employee name.</p><div class="upload-row"><input type="file" id="excelFile" accept=".xlsx,.xls,.csv"><button class="ai-btn" id="uploadExcel">Upload & Allocate</button><button class="secondary" id="downloadTemplate">Download Template</button></div><div class="sample"><b>Recommended columns:</b> EMPLOYEE NAME, TASK / TITLE, DESCRIPTION, DUE DATE, PRIORITY, STATUS<br><b>Example:</b> RAHUL | CHECK OPD STOCK | Verify pharmacy stock | 20-07-2026 | HIGH | TODO</div><div id="uploadResult" class="muted" style="margin-top:10px"></div></section>`:""}
 ${u.role==="ADMIN"?`<section class="panel" style="margin-bottom:18px"><h2>👥 Create Employee</h2><form id="userForm" class="admin-form"><input id="newName" placeholder="Employee name" required><input id="newEmail" type="email" placeholder="Email" required><input id="newPass" placeholder="Temporary password" required><button class="primary">Create Employee</button></form></section>`:""}
-
 <section class="panel" style="margin-bottom:18px">
 <h2>📊 Reports & Analytics</h2>
 <div class="toolbar" style="grid-template-columns:1fr 1fr 1fr 1fr auto auto">
