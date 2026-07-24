@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Amba AI Task Manager V4</title>
+<title>Amba AI Task Manager V6 - Google Sheets</title>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
 :root{--bg:#f4f7fb;--card:#fff;--text:#18212f;--muted:#6b7280;--line:#e5e7eb;--primary:#4f46e5;--ai:#7c3aed;--danger:#dc2626;--shadow:0 10px 30px #00000012}
@@ -25,13 +25,33 @@ input,select,textarea{width:100%;padding:11px;border:1px solid var(--line);borde
 <body>
 <div id="app"></div><div id="toast"></div>
 <script>
-const SCRIPT_URL="https://script.google.com/macros/s/AKfycbxOm9GB6vg3YaIueFjCvzNxx4TceyP9TGI0KJ686o3kQk8TUQlWjdyOUQ5TR0zCS0M/exec";
-const DB="amba_ai_task_manager_v4",SESSION="amba_ai_session_v4",REMEMBER="amba_ai_remember_v4";
-let db=JSON.parse(https://script.google.com/macros/s/AKfycbxOm9GB6vg3YaIueFjCvzNxx4TceyP9TGI0KJ686o3kQk8TUQlWjdyOUQ5TR0zCS0M/exec.getItem(DB)||"null")||{users:[
+const API_URL="https://script.google.com/macros/s/AKfycbzj-8D5NIf5qH2CRcYzFo25HhrHP0Zk3wUCGKkh_ChpUjUovaQJQFXCDrpfVbHYikFQ/exec";
+const DB="amba_ai_task_manager_v6",SESSION="amba_ai_session_v6",REMEMBER="amba_ai_remember_v6";
+let cloudReady=false;
+let cloudSyncTimer=null;
+let db=JSON.parse(localStorage.getItem(DB)||"null")||{users:[
 {id:"u1",name:"Admin",email:"admin@amba.local",password:"Admin@123",role:"ADMIN"},
 {id:"u2",name:"Rahul",email:"rahul@amba.local",password:"Employee@123",role:"EMPLOYEE"}],tasks:[],notifications:[]};
-let session=JSON.parse(https://script.google.com/macros/s/AKfycbxOm9GB6vg3YaIueFjCvzNxx4TceyP9TGI0KJ686o3kQk8TUQlWjdyOUQ5TR0zCS0M/exec.getItem(SESSION)||sessionStorage.getItem(SESSION)||"null"),editing=null,deleting=null;
-const save=()=>https://script.google.com/macros/s/AKfycbxOm9GB6vg3YaIueFjCvzNxx4TceyP9TGI0KJ686o3kQk8TUQlWjdyOUQ5TR0zCS0M/exec.setItem(DB,JSON.stringify(db)), user=()=>db.users.find(x=>x.id===session?.userId);
+let session=JSON.parse(localStorage.getItem(SESSION)||sessionStorage.getItem(SESSION)||"null"),editing=null,deleting=null;
+const user=()=>db.users.find(x=>x.id===session?.userId);
+function localSave(){localStorage.setItem(DB,JSON.stringify(db));}
+async function apiPost(payload){
+  if(!API_URL || API_URL.includes("PASTE_YOUR")) return {success:false,message:"API URL not configured"};
+  try{
+    const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)});
+    return await r.json();
+  }catch(e){console.error(e);return {success:false,error:e.toString()};}
+}
+async function syncDatabase(){
+  localSave();
+  if(!cloudReady) return;
+  clearTimeout(cloudSyncTimer);
+  cloudSyncTimer=setTimeout(async()=>{
+    const result=await apiPost({action:"syncDatabase",database:db});
+    if(!result.success) toast("Cloud sync failed — local copy retained");
+  },250);
+}
+const save=()=>{syncDatabase();};
 const esc=x=>{let d=document.createElement("div");d.textContent=x??"";return d.innerHTML};
 function toast(x){let t=document.getElementById("toast");t.textContent=x;t.style.cssText="position:fixed;right:20px;bottom:20px;background:#111827;color:#fff;padding:13px 17px;border-radius:10px;z-index:99";setTimeout(()=>t.style.display="none",2600)}
 function notify(uid,msg){if(!uid)return;db.notifications.unshift({id:"n"+Date.now()+Math.random(),userId:uid,message:msg,read:false,date:new Date().toISOString()});save()}
@@ -40,8 +60,8 @@ function norm(v){return String(v??"").trim().toLowerCase().replace(/[^a-z0-9]+/g
 function parseDate(v){if(!v)return null;if(v instanceof Date)return v.toISOString().slice(0,10);let s=String(v).trim();let d=new Date(s);if(!isNaN(d))return d.toISOString().slice(0,10);let p=s.split(/[\/\-\.]/);if(p.length===3){if(p[0].length===4)return `${p[0]}-${String(p[1]).padStart(2,"0")}-${String(p[2]).padStart(2,"0")}`;return `${p[2]}-${String(p[1]).padStart(2,"0")}-${String(p[0]).padStart(2,"0")}`}return null}
 function statusNorm(v){let s=norm(v);if(["done","completed","complete","closed"].includes(s))return"DONE";if(["inprogress","progress","working"].includes(s))return"IN_PROGRESS";return"TODO"}
 function priorityNorm(v){let s=norm(v);if(s==="high"||s==="urgent")return"HIGH";if(s==="low")return"LOW";return"MEDIUM"}
-function renderLogin(){app.innerHTML=`<main class="login"><section class="login-card"><h1>🤖 Amba AI Task Manager</h1><p>Smart task management with Excel work allocation</p><form id="loginForm"><div class="group"><label>Email</label><input id="email" type="email" required></div><div class="group"><label>Password</label><input id="password" type="password" required></div><div style="display:flex;align-items:center;gap:8px;margin:12px 0 18px"><input id="rememberMe" type="checkbox" style="width:auto"><label for="rememberMe" style="margin:0;font-weight:600">Remember Me</label></div><button class="primary" style="width:100%">Login</button></form><div class="demo"><b>Admin:</b> admin@amba.local / Admin@123<br><br><b>Employee:</b> rahul@amba.local / Employee@123</div></section></main>`;loginForm.onsubmit=e=>{e.preventDefault();let x=db.users.find(u=>u.email.toLowerCase()===email.value.toLowerCase()&&u.password===password.value);if(!x)return toast("Invalid login");session={userId:x.id};let remember=document.getElementById("rememberMe")?.checked;if(remember){https://script.google.com/macros/s/AKfycbxOm9GB6vg3YaIueFjCvzNxx4TceyP9TGI0KJ686o3kQk8TUQlWjdyOUQ5TR0zCS0M/exec.setItem(SESSION,JSON.stringify(session));https://script.google.com/macros/s/AKfycbxOm9GB6vg3YaIueFjCvzNxx4TceyP9TGI0KJ686o3kQk8TUQlWjdyOUQ5TR0zCS0M/exec.setItem(REMEMBER,"true")}else{sessionStorage.setItem(SESSION,JSON.stringify(session));https://script.google.com/macros/s/AKfycbxOm9GB6vg3YaIueFjCvzNxx4TceyP9TGI0KJ686o3kQk8TUQlWjdyOUQ5TR0zCS0M/exec.removeItem(SESSION);https://script.google.com/macros/s/AKfycbxOm9GB6vg3YaIueFjCvzNxx4TceyP9TGI0KJ686o3kQk8TUQlWjdyOUQ5TR0zCS0M/exec.removeItem(REMEMBER)}renderApp()}}
-function renderApp(){let u=user();app.innerHTML=`<main class="shell"><header class="top"><div><h1>🤖 Amba AI Task Manager V4</h1><div class="muted">Welcome ${esc(u.name)} · ${u.role}</div></div><div class="actions"><div class="notice"><button class="secondary" id="noticeBtn">🔔 <span id="badge"></span></button><div class="menu" id="noticeMenu"><div class="menu-head"><b>Notifications</b><button class="secondary" id="readAll">Read all</button></div><div id="noticeList"></div></div></div><button class="secondary" id="theme">🌙</button><button class="secondary" id="logout">Logout</button><button class="primary" id="add">+ Add Task</button></div></header>
+function renderLogin(){app.innerHTML=`<main class="login"><section class="login-card"><h1>🤖 Amba AI Task Manager</h1><p>Smart task management with Excel work allocation</p><form id="loginForm"><div class="group"><label>Email</label><input id="email" type="email" required></div><div class="group"><label>Password</label><input id="password" type="password" required></div><div style="display:flex;align-items:center;gap:8px;margin:12px 0 18px"><input id="rememberMe" type="checkbox" style="width:auto"><label for="rememberMe" style="margin:0;font-weight:600">Remember Me</label></div><button class="primary" style="width:100%">Login</button></form><div class="demo"><b>Admin:</b> admin@amba.local / Admin@123<br><br><b>Employee:</b> rahul@amba.local / Employee@123</div></section></main>`;loginForm.onsubmit=e=>{e.preventDefault();let x=db.users.find(u=>u.email.toLowerCase()===email.value.toLowerCase()&&u.password===password.value);if(!x)return toast("Invalid login");session={userId:x.id};let remember=document.getElementById("rememberMe")?.checked;if(remember){localStorage.setItem(SESSION,JSON.stringify(session));localStorage.setItem(REMEMBER,"true")}else{sessionStorage.setItem(SESSION,JSON.stringify(session));localStorage.removeItem(SESSION);localStorage.removeItem(REMEMBER)}renderApp()}}
+function renderApp(){let u=user();app.innerHTML=`<main class="shell"><header class="top"><div><h1>🤖 Amba AI Task Manager V6</h1><div class="muted">Welcome ${esc(u.name)} · ${u.role}</div></div><div class="actions"><div class="notice"><button class="secondary" id="noticeBtn">🔔 <span id="badge"></span></button><div class="menu" id="noticeMenu"><div class="menu-head"><b>Notifications</b><button class="secondary" id="readAll">Read all</button></div><div id="noticeList"></div></div></div><button class="secondary" id="theme">🌙</button><button class="secondary" id="cloudSync">☁️ Sync</button><button class="secondary" id="logout">Logout</button><button class="primary" id="add">+ Add Task</button></div></header>
 <section class="stats"><div class="stat"><span>Total Tasks</span><strong id="total">0</strong></div><div class="stat"><span>Pending</span><strong id="pending">0</strong></div><div class="stat"><span>In Progress</span><strong id="progress">0</strong></div><div class="stat"><span>Completed</span><strong id="done">0</strong></div><div class="stat"><span>Overdue</span><strong id="overdue">0</strong></div></section>
 ${u.role==="ADMIN"?`<section class="panel upload-box" style="margin-bottom:18px"><h2>📊 Excel Work Allocation Upload</h2><p class="muted">Upload an Excel file to create and allocate tasks automatically by employee name.</p><div class="upload-row"><input type="file" id="excelFile" accept=".xlsx,.xls,.csv"><button class="ai-btn" id="uploadExcel">Upload & Allocate</button><button class="secondary" id="downloadTemplate">Download Template</button></div><div class="sample"><b>Recommended columns:</b> EMPLOYEE NAME, TASK / TITLE, DESCRIPTION, DUE DATE, PRIORITY, STATUS<br><b>Example:</b> RAHUL | CHECK OPD STOCK | Verify pharmacy stock | 20-07-2026 | HIGH | TODO</div><div id="uploadResult" class="muted" style="margin-top:10px"></div></section>`:""}
 ${u.role==="ADMIN"?`<section class="panel" style="margin-bottom:18px"><h2>👥 Create Employee</h2><form id="userForm" class="admin-form"><input id="newName" placeholder="Employee name" required><input id="newEmail" type="email" placeholder="Email" required><input id="newPass" placeholder="Temporary password" required><button class="primary">Create Employee</button></form></section>`:""}
@@ -72,7 +92,7 @@ function visible(){let u=user(),q=(search.value||"").toLowerCase(),a=db.tasks.fi
 function renderTasks(){let a=visible(),today=new Date().toISOString().slice(0,10);total.textContent=a.length;pending.textContent=a.filter(x=>x.status==="TODO").length;progress.textContent=a.filter(x=>x.status==="IN_PROGRESS").length;done.textContent=a.filter(x=>x.status==="DONE").length;overdue.textContent=a.filter(x=>x.dueDate&&x.dueDate<today&&x.status!=="DONE").length;tasks.innerHTML=a.length?a.map(t=>{let ass=db.users.find(x=>x.id===t.assignedTo);return`<article class="task"><div class="task-head"><div><h3>${esc(t.title)}</h3><p>${esc(t.description||"No description")}</p></div><div class="actions"><button class="secondary" onclick="editTask('${t.id}')">Edit</button><button class="danger" onclick="askDelete('${t.id}')">Delete</button></div></div><div class="meta"><span class="pill ${t.priority.toLowerCase()}">${t.priority}</span><span class="pill status">${t.status==="TODO"?"To Do":t.status==="IN_PROGRESS"?"In Progress":"Done"}</span><span class="pill status">📅 ${dateText(t.dueDate)}</span><span class="pill status">👤 ${esc(ass?.name||"Unassigned")}</span></div></article>`}).join(""):'<div class="empty">No tasks found.</div>'}
 function renderAllocation(){let a=visible(),users=db.users.filter(x=>x.role==="EMPLOYEE");allocation.innerHTML=users.map(u=>{let x=a.filter(t=>t.assignedTo===u.id),done=x.filter(t=>t.status==="DONE").length,pending=x.filter(t=>t.status!=="DONE").length,percent=x.length?Math.round(done/x.length*100):0;return`<div class="employee-card"><h3>👤 ${esc(u.name)}</h3><div class="muted">${x.length} total · ${pending} pending · ${done} completed</div><div class="bar" style="margin-top:10px"><i style="width:${percent}%"></i></div><div class="muted" style="margin-top:5px">${percent}% completed</div></div>`}).join("")||'<div class="empty">No employees yet.</div>'}
 function renderInsights(){let a=visible(),today=new Date().toISOString().slice(0,10),over=a.filter(x=>x.dueDate&&x.dueDate<today&&x.status!=="DONE").length,high=a.filter(x=>x.priority==="HIGH"&&x.status!=="DONE").length;insights.innerHTML=`<p>📌 <b>${over}</b> overdue task(s)</p><p>🔥 <b>${high}</b> high-priority task(s) pending</p><p>✅ <b>${a.filter(x=>x.status==="DONE").length}</b> completed task(s)</p>${over?'<p>⚠️ Review overdue work allocation.</p>':'<p>🎉 No overdue tasks in this view.</p>'}`}
-function bind(){logout.onclick=()=>{https://script.google.com/macros/s/AKfycbxOm9GB6vg3YaIueFjCvzNxx4TceyP9TGI0KJ686o3kQk8TUQlWjdyOUQ5TR0zCS0M/exec.removeItem(SESSION);sessionStorage.removeItem(SESSION);https://script.google.com/macros/s/AKfycbxOm9GB6vg3YaIueFjCvzNxx4TceyP9TGI0KJ686o3kQk8TUQlWjdyOUQ5TR0zCS0M/exec.removeItem(REMEMBER);session=null;renderLogin()};theme.onclick=()=>{document.body.classList.toggle("dark");https://script.google.com/macros/s/AKfycbxOm9GB6vg3YaIueFjCvzNxx4TceyP9TGI0KJ686o3kQk8TUQlWjdyOUQ5TR0zCS0M/exec.setItem("dark",document.body.classList.contains("dark"))};add.onclick=()=>openTask();cancel.onclick=closeTask;cancelDelete.onclick=()=>deleteModal.classList.remove("open");confirmDelete.onclick=deleteTask;[search,fe,fs,fp,sort].forEach(x=>x.addEventListener("input",()=>{renderTasks();renderAllocation();renderInsights()}));refresh.onclick=()=>{renderTasks();renderAllocation();renderInsights()};taskForm.onsubmit=saveTask;parse.onclick=quickAI;askAI.onclick=ask;aiText.onkeydown=e=>{if(e.key==="Enter")ask()};noticeBtn.onclick=()=>noticeMenu.classList.toggle("open");readAll.onclick=()=>{db.notifications.filter(n=>n.userId===user().id).forEach(n=>n.read=true);save();renderNotifications()};let uf=document.getElementById("userForm");if(uf)uf.onsubmit=createEmployee;let up=document.getElementById("uploadExcel");if(up)up.onclick=uploadExcel;let dt=document.getElementById("downloadTemplate");if(dt)dt.onclick=downloadTemplate;populateReportEmployees();let gr=document.getElementById("generateReport");if(gr)gr.onclick=generateReport;let er=document.getElementById("exportReport");if(er)er.onclick=exportReport;["reportEmployee","reportFrom","reportTo","reportType"].forEach(id=>{let el=document.getElementById(id);if(el)el.addEventListener("change",generateReport)});generateReport()}
+function bind(){cloudSync.onclick=async()=>{if(!API_URL||API_URL.includes("PASTE_YOUR"))return toast("Add Apps Script URL first");cloudReady=true;await syncDatabase();toast("Cloud sync requested")};logout.onclick=()=>{localStorage.removeItem(SESSION);sessionStorage.removeItem(SESSION);localStorage.removeItem(REMEMBER);session=null;renderLogin()};theme.onclick=()=>{document.body.classList.toggle("dark");localStorage.setItem("dark",document.body.classList.contains("dark"))};add.onclick=()=>openTask();cancel.onclick=closeTask;cancelDelete.onclick=()=>deleteModal.classList.remove("open");confirmDelete.onclick=deleteTask;[search,fe,fs,fp,sort].forEach(x=>x.addEventListener("input",()=>{renderTasks();renderAllocation();renderInsights()}));refresh.onclick=()=>{renderTasks();renderAllocation();renderInsights()};taskForm.onsubmit=saveTask;parse.onclick=quickAI;askAI.onclick=ask;aiText.onkeydown=e=>{if(e.key==="Enter")ask()};noticeBtn.onclick=()=>noticeMenu.classList.toggle("open");readAll.onclick=()=>{db.notifications.filter(n=>n.userId===user().id).forEach(n=>n.read=true);save();renderNotifications()};let uf=document.getElementById("userForm");if(uf)uf.onsubmit=createEmployee;let up=document.getElementById("uploadExcel");if(up)up.onclick=uploadExcel;let dt=document.getElementById("downloadTemplate");if(dt)dt.onclick=downloadTemplate;populateReportEmployees();let gr=document.getElementById("generateReport");if(gr)gr.onclick=generateReport;let er=document.getElementById("exportReport");if(er)er.onclick=exportReport;["reportEmployee","reportFrom","reportTo","reportType"].forEach(id=>{let el=document.getElementById(id);if(el)el.addEventListener("change",generateReport)});generateReport();let d=document.getElementById("delegateBtn");if(d)d.onclick=()=>{if(!fromEmp.value||!toEmp.value)return toast("Select employees");reassignEmployeeTasks(fromEmp.value,toEmp.value);}}
 function openTask(id=null){editing=id;taskModal.classList.add("open");taskForm.reset();modalTitle.textContent=id?"Edit Task":"Create Task";if(id){let t=db.tasks.find(x=>x.id===id);title.value=t.title;desc.value=t.description;due.value=t.dueDate||"";pri.value=t.priority;sta.value=t.status;if(assign)assign.value=t.assignedTo||""}}
 function closeTask(){taskModal.classList.remove("open");editing=null}
 function saveTask(e){e.preventDefault();let obj={title:title.value.trim(),description:desc.value,dueDate:due.value||null,priority:pri.value,status:sta.value,assignedTo:document.getElementById("assign")?.value||null};if(editing){let t=db.tasks.find(x=>x.id===editing),old=t.assignedTo;Object.assign(t,obj);if(obj.assignedTo&&obj.assignedTo!==old)notify(obj.assignedTo,"New task assigned: "+t.title);toast("Task updated")}else{let t={id:"t"+Date.now(),...obj,createdBy:user().id,createdAt:Date.now()};db.tasks.unshift(t);if(obj.assignedTo)notify(obj.assignedTo,"New task assigned: "+t.title);toast("Task created")}save();closeTask();renderTasks();renderAllocation();renderInsights();renderNotifications()}
@@ -116,7 +136,45 @@ function exportReport(){
 function renderNotifications(){let a=db.notifications.filter(x=>x.userId===user().id),un=a.filter(x=>!x.read).length;badge.textContent=un||"";noticeList.innerHTML=a.length?a.slice(0,30).map(n=>`<div class="notice-item ${n.read?"":"unread"}">${esc(n.message)}<small>${new Date(n.date).toLocaleString("en-IN")}</small></div>`).join(""):'<div class="empty">No notifications</div>'}
 function uploadExcel(){let f=excelFile.files[0];if(!f)return toast("Please select an Excel file");let reader=new FileReader();reader.onload=e=>{try{let wb=XLSX.read(e.target.result,{type:"array",cellDates:true}),ws=wb.Sheets[wb.SheetNames[0]],rows=XLSX.utils.sheet_to_json(ws,{defval:""});if(!rows.length)return toast("Excel file is empty");let created=0,unmatched=[],assignedCount=0;rows.forEach((r,i)=>{let keys=Object.keys(r),get=(names)=>{let k=keys.find(x=>names.includes(norm(x)));return k?r[k]:""};let name=get(["employeename","employee","assignedto","assignee","staffname","name"]),title=get(["task","title","tasktitle","work","workallocation"]);if(!title)title=get(["description"]);if(!title)return;let desc=get(["description","details","remark","remarks","notes"]),due=parseDate(get(["duedate","date","deadline","targetdate"])),priority=priorityNorm(get(["priority","level"])),status=statusNorm(get(["status","taskstatus"]));let emp=db.users.find(u=>norm(u.name)===norm(name)||norm(u.email)===norm(name));if(name&&!emp){unmatched.push(`${name} (row ${i+2})`)}let t={id:"t"+Date.now()+Math.random(),title:String(title),description:String(desc||""),dueDate:due,priority,status,assignedTo:emp?.id||null,createdBy:user().id,createdAt:Date.now(),source:"EXCEL"};db.tasks.unshift(t);created++;if(emp){assignedCount++;notify(emp.id,"New task allocated from Excel: "+t.title)}});save();renderTasks();renderAllocation();renderInsights();renderNotifications();uploadResult.innerHTML=`✅ <b>${created}</b> task(s) imported · 👤 <b>${assignedCount}</b> allocated by employee name.${unmatched.length?`<br>⚠️ Unmatched names: ${esc(unmatched.join(", "))}`:""}`;toast("Excel work allocation imported")}catch(err){console.error(err);toast("Could not read Excel file")}};reader.readAsArrayBuffer(f)}
 function downloadTemplate(){let rows=[["EMPLOYEE NAME","TASK / TITLE","DESCRIPTION","DUE DATE","PRIORITY","STATUS"],["RAHUL","CHECK OPD STOCK","Verify pharmacy stock","20-07-2026","HIGH","TODO"],["RAHUL","EXPIRY CHECK","Check expiry medicines","21-07-2026","MEDIUM","TODO"],["AMIT","PREPARE REPORT","Prepare monthly report","22-07-2026","LOW","IN_PROGRESS"]];let ws=XLSX.utils.aoa_to_sheet(rows),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"WORK ALLOCATION");XLSX.writeFile(wb,"Amba_Work_Allocation_Template.xlsx")}
-if(https://script.google.com/macros/s/AKfycbxOm9GB6vg3YaIueFjCvzNxx4TceyP9TGI0KJ686o3kQk8TUQlWjdyOUQ5TR0zCS0M/exec.getItem("dark")==="true")document.body.classList.add("dark");if(session&&user())renderApp();else renderLogin();
+
+// === Employee Availability Feature ===
+if(!db.employeeAvailability) db.employeeAvailability=[];
+if(!db.reassignmentHistory) db.reassignmentHistory=[];
+function reassignEmployeeTasks(fromId,toId){
+  db.tasks.forEach(t=>{
+    if(t.assignedTo===fromId && t.status!=="DONE"){
+      db.reassignmentHistory.push({id:"r"+Date.now()+Math.random(),taskId:t.id,from:fromId,to:toId,date:new Date().toISOString()});
+      t.assignedTo=toId;
+      notify(toId,"Task delegated: "+t.title);
+    }
+  });
+  save();
+  renderTasks();renderAllocation();renderInsights();renderNotifications();
+  toast("Tasks reassigned successfully");
+}
+
+async function loadCloudDatabase(){
+  if(!API_URL || API_URL.includes("PASTE_YOUR")){
+    cloudReady=false;
+    if(session&&user())renderApp();else renderLogin();
+    return;
+  }
+  try{
+    const r=await fetch(API_URL);
+    const remote=await r.json();
+    if(remote && remote.users && remote.tasks && remote.notifications){
+      db=remote;
+      localSave();
+      cloudReady=true;
+    }
+  }catch(e){
+    console.warn("Cloud database unavailable; using local cache",e);
+    cloudReady=false;
+  }
+  if(session&&user())renderApp();else renderLogin();
+}
+if(localStorage.getItem("dark")==="true")document.body.classList.add("dark");
+loadCloudDatabase();
 </script>
 </body>
 </html>
