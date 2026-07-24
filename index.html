@@ -25,8 +25,8 @@ input,select,textarea{width:100%;padding:11px;border:1px solid var(--line);borde
 <body>
 <div id="app"></div><div id="toast"></div>
 <script>
-const API_URL="https://script.google.com/macros/s/AKfycbzj-8D5NIf5qH2CRcYzFo25HhrHP0Zk3wUCGKkh_ChpUjUovaQJQFXCDrpfVbHYikFQ/exec";
-const DB="amba_ai_task_manager_v6",SESSION="amba_ai_session_v6",REMEMBER="amba_ai_remember_v6";
+if(!API_URL || API_URL.includes("PASTE_YOUR")){
+ const DB="amba_ai_task_manager_v6",SESSION="amba_ai_session_v6",REMEMBER="amba_ai_remember_v6";
 let cloudReady=false;
 let cloudSyncTimer=null;
 let db=JSON.parse(localStorage.getItem(DB)||"null")||{users:[
