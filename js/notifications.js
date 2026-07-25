@@ -1,130 +1,44 @@
-// ===== NOTIFICATIONS MODULE =====
-// This module provides enhanced notification management functionality
+// Notifications Module for Amba AI Task Manager V6
 
-// Notification types
-const NOTIFICATION_TYPES = {
-    TASK_ASSIGNED: "TASK_ASSIGNED",
-    TASK_COMPLETED: "TASK_COMPLETED",
-    TASK_OVERDUE: "TASK_OVERDUE",
-    TASK_REASSIGNED: "TASK_REASSIGNED",
-    DEADLINE_APPROACHING: "DEADLINE_APPROACHING",
-    SYSTEM_MESSAGE: "SYSTEM_MESSAGE"
-};
-
-function createNotification(userId, message, type = "SYSTEM_MESSAGE", data = {}){
-    if(!userId) return;
+function renderNotificationsPanel(){
+    const u = user();
+    const notifications = db.notifications.filter(n => n.userId === u.id);
+    const unread = notifications.filter(n => !n.read).length;
     
-    const notification = {
-        id: "n" + Date.now() + Math.random(),
-        userId: userId,
-        message: message,
-        type: type,
-        read: false,
-        date: new Date().toISOString(),
-        data: data
-    };
+    const notificationsHTML = `
+    <section class="panel" style="margin-bottom:18px">
+        <h2>🔔 Notifications ${unread > 0 ? `<span style="background: #dc2626; color: white; border-radius: 50%; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px;">${unread}</span>` : ""}</h2>
+        
+        <div id="notificationsList" style="max-height: 400px; overflow-y: auto;">
+            ${notifications.length ? notifications.slice(0, 20).map(n => `
+                <div style="padding: 12px; border-bottom: 1px solid var(--line); ${n.read ? '' : 'background: #f3f4f6;'}">
+                    <p style="margin: 0; ${n.read ? '' : 'font-weight: bold;'}">${esc(n.message)}</p>
+                    <span class="muted" style="font-size: 12px;">${new Date(n.date).toLocaleString()}</span>
+                    ${!n.read ? `<button class="primary" style="padding: 4px 8px; font-size: 12px; margin-top: 5px;" onclick="markNotificationRead('${n.id}')">✓ Mark Read</button>` : ""}
+                </div>
+            `).join("") : "<p class='muted' style='padding: 15px;'>No notifications yet</p>"}
+        </div>
+    </section>`;
     
-    db.notifications.unshift(notification);
-    save();
-    return notification;
+    return notificationsHTML;
 }
 
 function markNotificationRead(notificationId){
-    const notif = db.notifications.find(x => x.id === notificationId);
-    if(notif){
+    const notif = db.notifications.find(n => n.id === notificationId);
+    if (notif) {
         notif.read = true;
         save();
+        renderNotifications();
+        toast("✅ Marked as read");
     }
 }
 
-function markAllNotificationsRead(userId){
-    db.notifications.filter(x => x.userId === userId && !x.read).forEach(x => {
-        x.read = true;
+function markAllNotificationsRead(){
+    const u = user();
+    db.notifications.forEach(n => {
+        if (n.userId === u.id) n.read = true;
     });
     save();
+    renderNotifications();
+    toast("✅ All marked as read");
 }
-
-function deleteNotification(notificationId){
-    db.notifications = db.notifications.filter(x => x.id !== notificationId);
-    save();
-}
-
-function clearAllNotifications(userId){
-    db.notifications = db.notifications.filter(x => x.userId !== userId);
-    save();
-}
-
-function getUnreadCount(userId){
-    return db.notifications.filter(x => x.userId === userId && !x.read).length;
-}
-
-function getUserNotifications(userId, limit = 30){
-    return db.notifications.filter(x => x.userId === userId).slice(0, limit);
-}
-
-// Auto-generate notifications for overdue tasks
-function checkOverdueTasks(){
-    const today = new Date().toISOString().slice(0,10);
-    
-    db.tasks.forEach(task => {
-        if(task.dueDate && task.dueDate < today && task.status !== "DONE"){
-            // Check if we already notified
-            const alreadyNotified = db.notifications.find(n => 
-                n.userId === task.assignedTo && 
-                n.data?.taskId === task.id && 
-                n.type === NOTIFICATION_TYPES.TASK_OVERDUE
-            );
-            
-            if(!alreadyNotified){
-                createNotification(
-                    task.assignedTo,
-                    `⚠️ Task overdue: ${task.title}`,
-                    NOTIFICATION_TYPES.TASK_OVERDUE,
-                    { taskId: task.id, taskTitle: task.title }
-                );
-            }
-        }
-    });
-}
-
-// Auto-generate notifications for approaching deadlines
-function checkApproachingDeadlines(){
-    const today = new Date();
-    const tomorrowPlus3 = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0,10);
-    const todayStr = today.toISOString().slice(0,10);
-    
-    db.tasks.forEach(task => {
-        if(task.dueDate && task.dueDate <= tomorrowPlus3 && task.dueDate >= todayStr && task.status !== "DONE"){
-            const alreadyNotified = db.notifications.find(n => 
-                n.userId === task.assignedTo && 
-                n.data?.taskId === task.id && 
-                n.type === NOTIFICATION_TYPES.DEADLINE_APPROACHING
-            );
-            
-            if(!alreadyNotified){
-                const daysLeft = Math.ceil((new Date(task.dueDate) - today) / (1000 * 60 * 60 * 24));
-                createNotification(
-                    task.assignedTo,
-                    `📅 Deadline in ${daysLeft} day(s): ${task.title}`,
-                    NOTIFICATION_TYPES.DEADLINE_APPROACHING,
-                    { taskId: task.id, taskTitle: task.title, daysLeft: daysLeft }
-                );
-            }
-        }
-    });
-}
-
-// Run background checks periodically
-if(typeof setInterval !== 'undefined'){
-    // Check every 60 seconds
-    setInterval(() => {
-        if(session && user()){
-            checkOverdueTasks();
-            checkApproachingDeadlines();
-        }
-    }, 60000);
-}
-
-// Initialize background checks on load
-checkOverdueTasks();
-checkApproachingDeadlines();
