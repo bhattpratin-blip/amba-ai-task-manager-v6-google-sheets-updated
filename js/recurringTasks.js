@@ -1,82 +1,179 @@
-// Recurring Tasks Module for Amba AI Task Manager V6
+// =====================================
+// Recurring Tasks Module - V7
+// =====================================
 
-function setupRecurringTasks(){
+let recurringTimer = null;
+
+function setupRecurringTasks() {
+
     if (!db.recurringTasks) db.recurringTasks = [];
-    if (!db.lastRecurringRun) db.lastRecurringRun = new Date().toISOString();
-    
-    // Check every hour if we need to generate new recurring tasks
-    setInterval(checkRecurringTasks, 3600000);
+    if (!db.tasks) db.tasks = [];
+
+    if (recurringTimer) {
+        clearInterval(recurringTimer);
+    }
+
+    checkRecurringTasks();
+
+    recurringTimer = setInterval(checkRecurringTasks, 3600000);
 }
 
-function checkRecurringTasks(){
-    if (!db.recurringTasks) return;
-    
-    const now = new Date();
-    const today = now.toISOString().slice(0, 10);
-    
-    db.recurringTasks.forEach(rt => {
-        if (!rt.enabled) return;
-        if (!rt.lastRun) rt.lastRun = today;
-        
-        const lastRunDate = new Date(rt.lastRun);
-        const shouldRun = 
-            (rt.frequency === "DAILY" && today !== rt.lastRun) ||
-            (rt.frequency === "WEEKLY" && (now.getTime() - lastRunDate.getTime()) >= 7 * 24 * 3600000) ||
-            (rt.frequency === "MONTHLY" && (now.getTime() - lastRunDate.getTime()) >= 30 * 24 * 3600000);
-        
-        if (shouldRun) {
-            createRecurringInstance(rt);
-            rt.lastRun = today;
+function checkRecurringTasks() {
+
+    if (!db.recurringTasks || !db.recurringTasks.length) return;
+
+    const today = new Date().toISOString().slice(0,10);
+
+    db.recurringTasks.forEach(task => {
+
+        if (!task.enabled) return;
+
+        if (!task.lastRun) {
+            task.lastRun = "";
         }
+
+        let shouldCreate = false;
+
+        switch(task.frequency){
+
+            case "DAILY":
+                shouldCreate = task.lastRun !== today;
+                break;
+
+            case "WEEKLY":
+                shouldCreate =
+                    daysBetween(task.lastRun,today) >= 7;
+                break;
+
+            case "MONTHLY":
+                shouldCreate =
+                    monthChanged(task.lastRun,today);
+                break;
+        }
+
+        if(shouldCreate){
+
+            createRecurringInstance(task);
+
+            task.lastRun = today;
+        }
+
     });
-    
+
     save();
 }
 
 function createRecurringInstance(template){
-    const now = new Date();
-    let dueDate = new Date(now);
-    
-    if (template.offsetDays) {
-        dueDate.setDate(dueDate.getDate() + parseInt(template.offsetDays));
-    }
-    
-    db.tasks.push({
-        id: "t" + Date.now() + Math.random(),
-        title: template.title,
-        description: template.description,
-        dueDate: dueDate.toISOString().slice(0, 10),
-        priority: template.priority,
-        status: "TODO",
-        assignedTo: template.assignedTo,
-        createdBy: template.createdBy,
-        isRecurringInstance: true,
-        recurringTaskId: template.id,
-        createdAt: new Date().toISOString()
+
+    if(!db.tasks) db.tasks=[];
+
+    const due=new Date();
+
+    due.setDate(
+        due.getDate() + Number(template.offsetDays || 0)
+    );
+
+    db.tasks.unshift({
+
+        id:"t"+Date.now()+Math.random(),
+
+        title:template.title,
+
+        description:template.description || "",
+
+        dueDate:due.toISOString().slice(0,10),
+
+        priority:template.priority || "MEDIUM",
+
+        status:"TODO",
+
+        assignedTo:template.assignedTo || null,
+
+        createdBy:template.createdBy || null,
+
+        recurringTaskId:template.id,
+
+        isRecurringInstance:true,
+
+        createdAt:new Date().toISOString()
+
     });
-    
-    notify(template.assignedTo, `📅 Recurring task: ${template.title}`);
+
+    if(template.assignedTo){
+
+        notify(
+            template.assignedTo,
+            "📅 New recurring task: " + template.title
+        );
+    }
+
 }
 
 function createRecurringTask(taskData){
-    if (!db.recurringTasks) db.recurringTasks = [];
-    
-    db.recurringTasks.push({
-        id: "r" + Date.now(),
-        title: taskData.title,
-        description: taskData.description,
-        priority: taskData.priority,
-        assignedTo: taskData.assignedTo,
-        createdBy: taskData.createdBy,
-        frequency: taskData.frequency || "WEEKLY",
-        offsetDays: taskData.offsetDays || 0,
-        enabled: true,
-        lastRun: null,
-        createdAt: new Date().toISOString()
-    });
-    
+
+    if(!db.recurringTasks){
+
+        db.recurringTasks=[];
+    }
+
+    const recurring={
+
+        id:"r"+Date.now(),
+
+        title:taskData.title,
+
+        description:taskData.description || "",
+
+        priority:taskData.priority || "MEDIUM",
+
+        assignedTo:taskData.assignedTo || null,
+
+        createdBy:taskData.createdBy || null,
+
+        frequency:taskData.frequency || "WEEKLY",
+
+        offsetDays:Number(taskData.offsetDays || 0),
+
+        enabled:true,
+
+        lastRun:"",
+
+        createdAt:new Date().toISOString()
+
+    };
+
+    db.recurringTasks.push(recurring);
+
     save();
-    toast(`✅ Recurring task created (${taskData.frequency})`);
+
+    toast(
+        `✅ ${recurring.frequency} recurring task created`
+    );
+
+    return recurring;
 }
 
-// NOTE: setupRecurringTasks() is now called from index.html after db is loaded
+function daysBetween(a,b){
+
+    if(!a) return 9999;
+
+    const d1=new Date(a);
+    const d2=new Date(b);
+
+    return Math.floor(
+        (d2-d1)/(1000*60*60*24)
+    );
+}
+
+function monthChanged(a,b){
+
+    if(!a) return true;
+
+    const d1=new Date(a);
+    const d2=new Date(b);
+
+    return (
+        d1.getMonth()!==d2.getMonth() ||
+        d1.getFullYear()!==d2.getFullYear()
+    );
+}
