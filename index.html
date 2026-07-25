@@ -3,213 +3,370 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Amba AI Task Manager V6 - Google Sheets</title>
-    <link rel="stylesheet" href="css/style.css">
+    <title>Pharmacy Task Manager - Amba AI</title>
+    <!-- XLSX Library for Excel Import/Export -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        :root{--bg:#f4f7fb;--card:#fff;--text:#18212f;--muted:#6b7280;--line:#e5e7eb;--primary:#4f46e5;--ai:#7c3aed;--danger:#dc2626;--shadow:0 10px 30px #00000012}
-        *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,sans-serif}body.dark{--bg:#0f172a;--card:#1e293b;--text:#f8fafc;--muted:#94a3b8;--line:#334155}
-        button,input,select,textarea{font:inherit}button{border:0;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}.primary{background:var(--primary);color:#fff}.ai-btn{background:var(--ai);color:#fff}.secondary{background:var(--card);color:var(--text);border:1px solid var(--line)}.danger{background:#fee2e2;color:#991b1b}.success{background:#dcfce7;color:#166534}
-        input,select,textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text)}textarea{min-height:95px;resize:vertical}
-        .login{min-height:100vh;display:grid;place-items:center;padding:20px}.login-card{width:min(440px,100%);background:var(--card);padding:32px;border-radius:20px;box-shadow:var(--shadow)}.login-card h1{text-align:center}.login-card p{text-align:center;color:var(--muted)}.group{margin:14px 0}.group label{display:block;font-weight:700;margin-bottom:6px}.demo{background:var(--bg);padding:14px;border-radius:12px;color:var(--muted);font-size:13px;margin-top:18px}
-        .shell{max-width:1450px;margin:auto;padding:20px}.top{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:22px}.top h1{margin:0}.muted{color:var(--muted);font-size:13px}.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-        .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:18px}.stat,.panel,.task{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}.stat{padding:18px}.stat span{color:var(--muted);font-size:13px}.stat strong{display:block;font-size:28px;margin-top:8px}
-        .grid{display:grid;grid-template-columns:1fr 370px;gap:18px}.panel{padding:18px}.toolbar{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr 1fr auto;gap:10px;margin-bottom:16px}.tasks{display:grid;gap:14px}.task{padding:18px}.task-head{display:flex;justify-content:space-between;gap:15px}.task h3{margin:0 0 8px}.task p{color:var(--muted);white-space:pre-wrap}.meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}.pill{border-radius:999px;padding:6px 9px;font-size:12px;font-weight:700}.high{background:#fee2e2;color:#991b1b}.medium{background:#fef3c7;color:#92400e}.low{background:#dcfce7;color:#166534}.status{background:#e0e7ff;color:#3730a3}.empty{text-align:center;padding:45px;color:var(--muted)}
-        .ai-panel{background:linear-gradient(135deg,#ede9fe,#f5f3ff);color:#312e81;border:1px solid #ddd6fe}.dark .ai-panel{background:#312e81;color:#ede9fe}.ai-panel h2{margin-top:0}.ai-chat{height:230px;overflow:auto;background:var(--card);border-radius:12px;padding:12px;margin:12px 0;color:var(--text)}.msg{padding:9px 11px;border-radius:10px;margin:7px 0;max-width:95%;font-size:14px}.msg.user{background:#e0e7ff;margin-left:auto}.msg.ai{background:#f3f4f6}.dark .msg.ai{background:#334155}.ai-input{display:flex;gap:8px}
-        .upload-box{border:2px dashed #a78bfa;border-radius:14px;padding:18px;background:#faf5ff}.dark .upload-box{background:#312e81}.upload-box h2{margin-top:0}.upload-row{display:flex;gap:10px;align-items:center}.upload-row input{flex:1}.sample{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.6}.allocation{display:grid;gap:10px}.employee-card{border:1px solid var(--line);border-radius:12px;padding:13px}.employee-card h3{margin:0 0 8px}.bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden}.bar i{display:block;height:100%;background:var(--primary)}
-        .notice{position:relative}.menu{display:none;position:absolute;right:0;top:48px;width:350px;max-width:calc(100vw - 25px);background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);z-index:10}.menu.open{display:block}.menu-head{padding:13px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}.notice-item{padding:12px;border-bottom:1px solid var(--line);font-size:14px}.notice-item.unread{background:#eef2ff}.notice-item small{display:block;color:var(--muted);margin-top:4px}
-        .modal-bg{display:none;position:fixed;inset:0;background:#0008;place-items:center;padding:20px;z-index:20}.modal-bg.open{display:grid}.modal{width:min(680px,100%);max-height:90vh;overflow:auto;background:var(--card);border-radius:18px;padding:22px}.modal h2{margin-top:0}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}.admin-form{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px}
-        .layout{display:flex;min-height:100vh}.sidebar{width:260px;background:#1e293b;color:#fff;padding:20px}.sidebar h2{margin:0 0 20px;text-align:center}.sidebar a{display:block;padding:12px 15px;margin:8px 0;color:white;text-decoration:none;border-radius:10px;transition:.3s}.sidebar a:hover{background:#4f46e5}.content{flex:1;padding:20px;background:var(--bg)}
-        #toast{position:fixed;right:20px;bottom:20px;background:#111827;color:#fff;padding:13px 17px;border-radius:10px;z-index:99;display:none}
-        @media(max-width:1100px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,1fr)}}
-        @media(max-width:750px){.top,.task-head{flex-direction:column;align-items:flex-start}.stats,.toolbar,.admin-form{grid-template-columns:1fr}.upload-row{flex-direction:column;align-items:stretch}.actions{width:100%}.actions button{flex:1}.layout{flex-direction:column}.sidebar{width:100%}}
+        :root {
+            --blue: #007bff; --bg: #ffffff; --sidebar: #f8fafc; --text: #1e293b;
+            --muted: #64748b; --line: #e2e8f0; --green: #22c55e; --red: #ef4444;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { margin: 0; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+
+        /* Login Screen */
+        #login-screen {
+            position: fixed; inset: 0; background: #fff; z-index: 9999;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .login-card {
+            width: 100%; max-width: 400px; padding: 40px; text-align: center;
+            border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow);
+        }
+        .login-card input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid var(--line); border-radius: 8px; }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px; background: var(--sidebar); border-right: 1px solid var(--line);
+            display: flex; flex-direction: column; position: fixed; height: 100vh;
+        }
+        .sidebar-header { padding: 30px 20px; font-weight: 800; font-size: 1.2rem; color: var(--blue); }
+        .nav-item { 
+            padding: 14px 25px; cursor: pointer; color: var(--muted); font-weight: 600;
+            display: flex; align-items: center; gap: 12px; transition: 0.2s;
+        }
+        .nav-item:hover, .nav-item.active { background: #eef2ff; color: var(--blue); }
+        .nav-group-title { padding: 20px 25px 10px; font-size: 0.7rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* Main Content */
+        .main { margin-left: 260px; flex: 1; padding: 30px; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        
+        /* Pharmacy Task Design (Circular Ticking) */
+        .task-list { display: flex; flex-direction: column; gap: 15px; }
+        .task-item {
+            background: #fff; border: 1px solid var(--line); padding: 20px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: space-between; transition: 0.3s;
+        }
+        .task-item.done { background: #f0fdf4; border-color: var(--green); }
+        .task-info h4 { margin: 0; font-size: 1rem; }
+        .task-info p { margin: 5px 0 0; font-size: 0.85rem; color: var(--muted); }
+
+        /* The Tapping Circle (PDF Logic Page 16) */
+        .circle-check {
+            width: 40px; height: 40px; border: 2px solid var(--line); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s;
+        }
+        .circle-check.checked { background: var(--green); border-color: var(--green); color: white; }
+        .circle-check.mandatory { border: none; background: #f1f5f9; color: #94a3b8; cursor: default; }
+
+        /* Dashboard Components */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: var(--sidebar); padding: 20px; border-radius: 15px; border: 1px solid var(--line); }
+        .stat-card h3 { margin: 10px 0 0; font-size: 1.8rem; }
+
+        /* Performance Bar */
+        .bar-bg { background: var(--line); height: 8px; border-radius: 10px; overflow: hidden; margin-top: 10px; }
+        .bar-fill { height: 100%; background: var(--blue); transition: 0.5s; }
+
+        /* Buttons */
+        button { padding: 10px 20px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; }
+        .btn-primary { background: var(--blue); color: white; }
+        .btn-wa { background: #25D366; color: white; }
+        .btn-danger { background: #fee2e2; color: #ef4444; }
+
+        /* Modal */
+        .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; place-items: center; z-index: 2000; }
+        .modal-bg.open { display: grid; }
+        .modal { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 450px; }
+
+        #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 25px; border-radius: 50px; display: none; z-index: 5000; }
+
+        @media (max-width: 900px) {
+            .sidebar { width: 0; overflow: hidden; }
+            .main { margin-left: 0; }
+        }
     </style>
 </head>
 <body>
-    <div id="app"></div>
-    <div id="toast"></div>
 
-<script>
-const API_URL = "https://script.google.com/macros/s/AKfycbzj-8D5NIf5qH2CRcYzFo25HhrHP0Zk3wUCGKkh_ChpUjUovaQJQFXCDrpfVbHYikFQ/exec";
-const DB = "amba_ai_task_manager_v6", SESSION = "amba_ai_session_v6", REMEMBER = "amba_ai_remember_v6";
-
-let db = JSON.parse(localStorage.getItem(DB)) || {
-    users: [
-        {id:"u1", name:"Admin", email:"admin@amba.local", password:"Admin@123", role:"ADMIN"},
-        {id:"u2", name:"Rahul", email:"rahul@amba.local", password:"Employee@123", role:"EMPLOYEE"}
-    ],
-    tasks: [],
-    notifications: []
-};
-
-let session = JSON.parse(localStorage.getItem(SESSION) || sessionStorage.getItem(SESSION) || "null");
-let editing = null, deleting = null, cloudReady = false;
-
-const app = document.getElementById('app');
-const user = () => db.users.find(x => x.id === session?.userId);
-
-function localSave() { localStorage.setItem(DB, JSON.stringify(db)); }
-function save() { localSave(); }
-
-function toast(msg) {
-    const t = document.getElementById("toast");
-    t.textContent = msg;
-    t.style.display = "block";
-    setTimeout(() => t.style.display = "none", 2600);
-}
-
-function esc(x) { let d = document.createElement("div"); d.textContent = x ?? ""; return d.innerHTML; }
-function dateText(d) { return d ? new Date(d + "T00:00:00").toLocaleDateString("en-IN") : "No due date"; }
-
-function renderLogin() {
-    app.innerHTML = `
-    <main class="login">
-        <section class="login-card">
-            <h1>🤖 Amba AI Task Manager</h1>
-            <p>Smart task management with Excel work allocation</p>
-            <form id="loginForm">
-                <div class="group"><label>Email</label><input id="email" type="email" required></div>
-                <div class="group"><label>Password</label><input id="password" type="password" required></div>
-                <button class="primary" style="width:100%">Login</button>
-            </form>
-            <div class="demo"><b>Admin:</b> admin@amba.local / Admin@123</div>
-        </section>
-    </main>`;
-    
-    document.getElementById('loginForm').onsubmit = e => {
-        e.preventDefault();
-        const emailVal = document.getElementById('email').value.toLowerCase();
-        const passVal = document.getElementById('password').value;
-        let x = db.users.find(u => u.email.toLowerCase() === emailVal && u.password === passVal);
-        if (!x) return toast("Invalid login");
-        session = { userId: x.id };
-        sessionStorage.setItem(SESSION, JSON.stringify(session));
-        renderApp();
-    };
-}
-
-function renderApp() {
-    let u = user();
-    if (!u) return renderLogin();
-
-    app.innerHTML = `
-    <div class="layout">
-        <div class="sidebar">
-            <h2>🏥 Amba AI</h2>
-            <a href="#" class="nav-link" data-page="dashboard">📊 Dashboard</a>
-            <a href="#" class="nav-link" data-page="employees">👥 Employees</a>
-            <a href="#" class="nav-link" data-page="reports">📈 Reports</a>
-            <hr>
-            <a href="#" id="logoutSide">🚪 Logout</a>
-        </div>
-        <div class="content">
-            <header class="top">
-                <div><h1>Dashboard</h1><div class="muted">Welcome ${esc(u.name)}</div></div>
-                <div class="actions">
-                    <button class="primary" id="addBtn">+ Add Task</button>
-                    <button class="secondary" id="logoutBtn">Logout</button>
-                </div>
-            </header>
-            
-            <section class="stats">
-                <div class="stat"><span>Total</span><strong id="total">0</strong></div>
-                <div class="stat"><span>Done</span><strong id="done">0</strong></div>
-                <div class="stat"><span>Pending</span><strong id="pending">0</strong></div>
-            </section>
-
-            <div class="grid">
-                <section class="panel">
-                    <div id="tasks" class="tasks"></div>
-                </section>
-                <aside class="panel ai-panel">
-                    <h2>🤖 AI Assistant</h2>
-                    <div id="chat" class="ai-chat"></div>
-                    <div class="ai-input">
-                        <input id="aiText" placeholder="Ask something...">
-                        <button class="ai-btn" id="askAI">Ask</button>
-                    </div>
-                </aside>
-            </div>
+    <!-- Login Section -->
+    <div id="login-screen">
+        <div class="login-card">
+            <h1 style="color: var(--blue);">🤖 Amba AI Portal</h1>
+            <p style="color: var(--muted);">Pharmacy Task Management System</p>
+            <input type="text" id="loginUser" placeholder="Username (Employee ID)">
+            <input type="password" id="loginPass" placeholder="Password">
+            <button class="btn-primary" style="width: 100%; margin-top: 10px;" onclick="attemptLogin()">Sign In</button>
+            <p style="font-size: 0.75rem; color: #aaa; margin-top: 20px;">Staff: P001 | Admin: P002 | HOD: P003 (Pass: 123)</p>
         </div>
     </div>
-    
+
+    <!-- App Sidebar -->
+    <nav class="sidebar" id="sidebar" style="display: none;">
+        <div class="sidebar-header">PHARMACY V1</div>
+        <div class="nav-group">
+            <div class="nav-item active" onclick="setView('dashboard')">🏠 Home Screen</div>
+            <div class="nav-item" onclick="setView('history')">📜 Audit History</div>
+            
+            <div id="admin-menu" style="display: none;">
+                <div class="nav-group-title">Admin Controls</div>
+                <div class="nav-item" onclick="setView('manage-staff')">👥 Staff Management</div>
+                <div class="nav-item" onclick="setView('master-db')">📚 Master Database</div>
+                <div class="nav-item" onclick="setView('excel')">📊 Excel Integration</div>
+            </div>
+
+            <div id="hod-menu" style="display: none;">
+                <div class="nav-group-title">HOD Tools</div>
+                <div class="nav-item" onclick="setView('reports')">📈 View Reports</div>
+                <div class="nav-item" onclick="setView('close-day')" style="color: var(--red);">🔒 Close Day</div>
+            </div>
+        </div>
+        <div class="nav-item" onclick="logout()" style="margin-top: auto; border-top: 1px solid var(--line);">🚪 Logout</div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main" id="main" style="display: none;">
+        <header>
+            <div>
+                <h1 id="view-title">Dashboard</h1>
+                <div style="font-size: 0.8rem; color: var(--muted);" id="date-display"></div>
+            </div>
+            <div style="display:flex; gap: 10px; align-items: center;">
+                <div id="sync-indicator" style="font-size: 0.7rem; color: var(--green);">● Connected</div>
+                <button class="btn-primary" id="top-btn" onclick="openTaskModal()">+ Create Task</button>
+            </div>
+        </header>
+
+        <div id="content-area"></div>
+    </main>
+
     <!-- Modals -->
-    <div id="taskModal" class="modal-bg">
+    <div class="modal-bg" id="taskModal">
         <div class="modal">
-            <h2>Task Details</h2>
+            <h2 id="modalTitle">New Task</h2>
             <form id="taskForm">
-                <div class="group"><label>Title</label><input id="title" required></div>
-                <div class="group"><label>Priority</label><select id="pri"><option>LOW</option><option selected>MEDIUM</option><option>HIGH</option></select></div>
-                <div class="modal-actions">
-                    <button type="button" class="secondary" onclick="document.getElementById('taskModal').classList.remove('open')">Cancel</button>
-                    <button class="primary">Save</button>
+                <input type="hidden" id="editId">
+                <label>Task Title</label><input type="text" id="tTitle" required style="width:100%; padding:10px; margin:8px 0; border:1px solid #ddd; border-radius:8px;">
+                <label>Description</label><input type="text" id="tDesc" style="width:100%; padding:10px; margin:8px 0; border:1px solid #ddd; border-radius:8px;">
+                <label>Assignee</label><select id="tAssign" style="width:100%; padding:10px; margin:8px 0; border:1px solid #ddd; border-radius:8px;"></select>
+                <div style="display:flex; gap:10px;">
+                    <div style="flex:1"><label>Due Date</label><input type="date" id="tDue" style="width:100%; padding:10px; margin:8px 0; border:1px solid #ddd; border-radius:8px;"></div>
+                    <div style="flex:1"><label>Priority</label><select id="tPri" style="width:100%; padding:10px; margin:8px 0; border:1px solid #ddd; border-radius:8px;"><option>LOW</option><option selected>MEDIUM</option><option>HIGH</option></select></div>
+                </div>
+                <div style="margin-top:20px; display:flex; gap:10px;">
+                    <button type="button" onclick="closeModal()" style="flex:1; background:#eee;">Cancel</button>
+                    <button type="submit" class="btn-primary" style="flex:1;">Save Task</button>
                 </div>
             </form>
         </div>
-    </div>`;
+    </div>
 
-    bindEvents();
-    renderTasks();
-}
+    <div id="toast"></div>
 
-function bindEvents() {
-    // Logout buttons
-    const doLogout = () => { sessionStorage.clear(); location.reload(); };
-    document.getElementById('logoutBtn').onclick = doLogout;
-    document.getElementById('logoutSide').onclick = doLogout;
+    <script>
+        // --- Configuration & DB (Page 14) ---
+        const API_URL = "https://script.google.com/macros/s/AKfycbzj-8D5NIf5qH2CRcYzFo25HhrHP0Zk3wUCGKkh_ChpUjUovaQJQFXCDrpfVbHYikFQ/exec";
+        const DAILY_LOCK_HOUR = 22; // 10 PM Lock rule (Page 9)
 
-    // Modal
-    document.getElementById('addBtn').onclick = () => document.getElementById('taskModal').classList.add('open');
-    document.getElementById('taskForm').onsubmit = (e) => {
-        e.preventDefault();
-        const newTask = {
-            id: "t" + Date.now(),
-            title: document.getElementById('title').value,
-            priority: document.getElementById('pri').value,
-            status: "TODO",
-            assignedTo: session.userId
+        let db = JSON.parse(localStorage.getItem('amba_pharmacy_db')) || {
+            tasks: [],
+            users: [
+                {id: 'P001', name: 'Rohan Joshi', role: 'STAFF', phone: '910000000000'},
+                {id: 'P002', name: 'Kevin Admin', role: 'ADMIN', phone: '911111111111'},
+                {id: 'P003', name: 'Amit HOD', role: 'HOD', phone: '912222222222'}
+            ],
+            logs: []
         };
-        db.tasks.unshift(newTask);
-        save();
-        document.getElementById('taskModal').classList.remove('open');
-        renderTasks();
-        toast("Task added!");
-    };
 
-    // Sidebar navigation
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.onclick = (e) => {
+        let currentView = 'dashboard';
+        let currentUser = null;
+
+        // --- Core Logic ---
+        function save() {
+            localStorage.setItem('amba_pharmacy_db', JSON.stringify(db));
+            refreshCurrentView();
+            syncToCloud();
+        }
+
+        async function syncToCloud() {
+            if(!API_URL) return;
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'text/plain;charset=utf-8'},
+                    body: JSON.stringify({action: 'syncDatabase', database: db})
+                });
+            } catch (e) { console.warn("Cloud Sync Failed (Offline Mode)"); }
+        }
+
+        function setView(v) {
+            currentView = v;
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            event?.currentTarget?.classList.add('active');
+            document.getElementById('view-title').innerText = v.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            refreshCurrentView();
+        }
+
+        function refreshCurrentView() {
+            const area = document.getElementById('content-area');
+            const today = new Date().toLocaleDateString();
+            const hour = new Date().getHours();
+            const isLocked = hour >= DAILY_LOCK_HOUR;
+
+            if(currentView === 'dashboard') {
+                renderDashboard(area, isLocked);
+            } else if(currentView === 'master-db') {
+                renderTable(area, db.tasks, "Full Task Database");
+            } else if(currentView === 'manage-staff') {
+                renderStaff(area);
+            } else if(currentView === 'reports') {
+                renderReports(area);
+            }
+        }
+
+        // --- Rendering Engine ---
+        function renderDashboard(area, isLocked) {
+            const myTasks = currentUser.role === 'STAFF' ? db.tasks.filter(t => t.userId === currentUser.id) : db.tasks;
+            const completed = myTasks.filter(t => t.status === 'DONE').length;
+            const pending = myTasks.length - completed;
+
+            area.innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card"><span>Today's Total</span><h3>${myTasks.length}</h3></div>
+                    <div class="stat-card"><span>Pending</span><h3>${pending}</h3></div>
+                    <div class="stat-card"><span>Completed</span><h3>${completed}</h3></div>
+                </div>
+                ${isLocked ? `<div style="padding:15px; background:#fee2e2; color:#ef4444; border-radius:10px; margin-bottom:20px; font-weight:700;">🔒 Daily Lock Active (After 10 PM). Task modification disabled.</div>` : ''}
+                <div class="task-list">
+                    ${myTasks.map(t => {
+                        const isDone = t.status === 'DONE';
+                        return `
+                            <div class="task-item ${isDone ? 'done' : ''}">
+                                <div class="task-info">
+                                    <h4>${t.title}</h4>
+                                    <p>${t.desc || 'No description'}</p>
+                                    <small>${db.users.find(u => u.id === t.userId)?.name || 'Unassigned'} | Due: ${t.due || 'No Date'}</small>
+                                </div>
+                                <div style="display:flex; gap:10px; align-items:center;">
+                                    ${currentUser.role !== 'STAFF' ? `<button class="btn-wa" onclick="sendWhatsApp('${t.id}')">📲 Notify</button>` : ''}
+                                    <div class="circle-check ${isDone ? 'checked' : ''}" onclick="toggleTask('${t.id}', ${isLocked})">
+                                        ${isDone ? '✔' : '○'}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('') || '<p class="muted">No tasks found for today.</p>'}
+                </div>
+            `;
+        }
+
+        function renderStaff(area) {
+            area.innerHTML = `
+                <div class="card" style="padding:20px; background:#f8fafc; border-radius:15px; margin-bottom:20px;">
+                    <h3>Add New Staff Member</h3>
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:10px;">
+                        <input id="staffId" placeholder="Emp ID (e.g. P004)">
+                        <input id="staffName" placeholder="Full Name">
+                        <input id="staffPhone" placeholder="Phone (with Country Code)">
+                        <button class="btn-primary" onclick="addStaff()">Add Employee</button>
+                    </div>
+                </div>
+                <table>
+                    <thead><tr><th>ID</th><th>Name</th><th>Phone</th><th>Role</th><th>Performance</th></tr></thead>
+                    <tbody>${db.users.map(u => {
+                        const ut = db.tasks.filter(t => t.userId === u.id);
+                        const done = ut.filter(t => t.status === 'DONE').length;
+                        const perc = ut.length ? Math.round((done/ut.length)*100) : 0;
+                        return `<tr><td>${u.id}</td><td>${u.name}</td><td>${u.phone}</td><td>${u.role}</td><td><div class="bar-bg"><div class="bar-fill" style="width:${perc}%"></div></div></td></tr>`;
+                    }).join('')}</tbody>
+                </table>
+            `;
+        }
+
+        // --- Actions ---
+        function attemptLogin() {
+            const u = document.getElementById('loginUser').value.trim();
+            const p = document.getElementById('loginPass').value;
+            const user = db.users.find(x => x.id === u && p === "123");
+
+            if(user) {
+                currentUser = user;
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('sidebar').style.display = 'flex';
+                document.getElementById('main').style.display = 'block';
+                document.getElementById('date-display').innerText = new Date().toDateString();
+                
+                // Set Permission Menus
+                if(user.role === 'ADMIN' || user.role === 'HOD') document.getElementById('admin-menu').style.display = 'block';
+                if(user.role === 'HOD') document.getElementById('hod-menu').style.display = 'block';
+                
+                setView('dashboard');
+                showToast("Welcome, " + user.name);
+            } else {
+                alert("Invalid Login Credentials.");
+            }
+        }
+
+        function toggleTask(id, isLocked) {
+            if(isLocked) return showToast("Daily Lock: Window closed.");
+            const t = db.tasks.find(x => x.id === id);
+            t.status = t.status === 'DONE' ? 'TODO' : 'DONE';
+            db.logs.push({action: `Task ${t.title} marked ${t.status}`, user: currentUser.id, time: new Date().toISOString()});
+            save();
+        }
+
+        function sendWhatsApp(id) {
+            const t = db.tasks.find(x => x.id === id);
+            const u = db.users.find(x => x.id === t.userId);
+            const msg = `*PHARMACY ALERT*%0A*Task:* ${t.title}%0A*Due:* ${t.due}%0A*Status:* PENDING%0A_Please update in app._`;
+            window.open(`https://wa.me/${u.phone}?text=${msg}`);
+        }
+
+        function addStaff() {
+            const id = document.getElementById('staffId').value;
+            const name = document.getElementById('staffName').value;
+            const phone = document.getElementById('staffPhone').value;
+            if(!id || !name) return;
+            db.users.push({id, name, phone, role: 'STAFF'});
+            save();
+        }
+
+        function openTaskModal() {
+            document.getElementById('tAssign').innerHTML = db.users.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+            document.getElementById('taskModal').classList.add('open');
+        }
+
+        function closeModal() { document.getElementById('taskModal').classList.remove('open'); }
+
+        document.getElementById('taskForm').onsubmit = (e) => {
             e.preventDefault();
-            toast("Navigating to " + e.target.dataset.page);
+            const nt = {
+                id: 't' + Date.now(),
+                title: document.getElementById('tTitle').value,
+                desc: document.getElementById('tDesc').value,
+                userId: document.getElementById('tAssign').value,
+                due: document.getElementById('tDue').value,
+                priority: document.getElementById('tPri').value,
+                status: 'TODO'
+            };
+            db.tasks.unshift(nt);
+            save(); closeModal();
         };
-    });
-}
 
-function renderTasks() {
-    const taskContainer = document.getElementById('tasks');
-    const u = user();
-    const myTasks = db.tasks.filter(t => t.assignedTo === u.id);
-    
-    document.getElementById('total').textContent = myTasks.length;
-    document.getElementById('done').textContent = myTasks.filter(t => t.status === "DONE").length;
-    document.getElementById('pending').textContent = myTasks.filter(t => t.status !== "DONE").length;
+        function logout() { localStorage.removeItem('amba_session'); location.reload(); }
 
-    taskContainer.innerHTML = myTasks.length ? myTasks.map(t => `
-        <div class="task">
-            <h3>${esc(t.title)}</h3>
-            <span class="pill ${t.priority.toLowerCase()}">${t.priority}</span>
-        </div>
-    `).join('') : '<p class="empty">No tasks yet.</p>';
-}
+        function showToast(m) {
+            const t = document.getElementById('toast');
+            t.innerText = m; t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 3000);
+        }
 
-// Initialize
-if (session && user()) renderApp(); else renderLogin();
-</script>
-
-<!-- External files (Ensure these exist in your repository) -->
-<script src="js/settings.js"></script>
-<script src="js/masterTasks.js"></script>
-<script src="js/notifications.js"></script>
-<script src="js/recurringTasks.js"></script>
+        // Initialize
+        if(!localStorage.getItem('amba_pharmacy_db')) save();
+    </script>
 </body>
 </html>
