@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Amba AI Task Manager V6</title>
+<title>Amba AI Task Manager V7</title>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
 :root{--bg:#f4f7fb;--card:#fff;--text:#18212f;--muted:#6b7280;--line:#e5e7eb;--primary:#4f46e5;--ai:#7c3aed;--danger:#dc2626;--shadow:0 10px 30px #00000012}
@@ -13,133 +13,249 @@ input,select,textarea{width:100%;padding:11px;border:1px solid var(--line);borde
 .login{min-height:100vh;display:grid;place-items:center;padding:20px}.login-card{width:min(440px,100%);background:var(--card);padding:32px;border-radius:20px;box-shadow:var(--shadow)}.login-card h1{text-align:center}.login-card p{text-align:center;color:var(--muted)}.group{margin:14px 0}.group label{display:block;font-weight:700;margin-bottom:6px}.demo{background:var(--bg);padding:14px;border-radius:12px;color:var(--muted);font-size:13px;margin-top:18px}
 .shell{max-width:1450px;margin:auto;padding:20px}.top{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:22px}.top h1{margin:0}.muted{color:var(--muted);font-size:13px}.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:18px}.stat,.panel,.task{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}.stat{padding:18px}.stat span{color:var(--muted);font-size:13px}.stat strong{display:block;font-size:28px;margin-top:8px}
-.grid{display:grid;grid-template-columns:1fr 370px;gap:18px}.panel{padding:18px}.toolbar{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr 1fr auto;gap:10px;margin-bottom:16px}.tasks{display:grid;gap:14px}.task{padding:18px}.task-head{display:flex;justify-content:space-between;gap:15px}.task h3{margin:0 0 8px}.task p{color:var(--muted);white-space:pre-wrap}.meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}.pill{border-radius:999px;padding:6px 9px;font-size:12px;font-weight:700}.high{background:#fee2e2;color:#991b1b}.medium{background:#fef3c7;color:#92400e}.low{background:#dcfce7;color:#166534}.status{background:#e0e7ff;color:#3730a3}.empty{text-align:center;padding:45px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:1fr 370px;gap:18px}.panel{padding:18px}.toolbar{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr 1fr auto;gap:10px;margin-bottom:16px}.tasks{display:grid;gap:14px}.task{padding:18px}.task-head{display:flex;justify-content:space-between;gap:15px}.task h3{margin:0 0 8px}.task p{color:var(--muted);white-space:pre-wrap}.meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}.pill{border-radius:999px;padding:6px 9px;font-size:12px;font-weight:700}
+.HIGH{background:#fee2e2;color:#991b1b}.MEDIUM{background:#fef3c7;color:#92400e}.LOW{background:#dcfce7;color:#166534}
 .ai-panel{background:linear-gradient(135deg,#ede9fe,#f5f3ff);color:#312e81;border:1px solid #ddd6fe}.dark .ai-panel{background:#312e81;color:#ede9fe}.ai-panel h2{margin-top:0}.ai-chat{height:230px;overflow:auto;background:var(--card);border-radius:12px;padding:12px;margin:12px 0;color:var(--text)}.msg{padding:9px 11px;border-radius:10px;margin:7px 0;max-width:95%;font-size:14px}.msg.user{background:#e0e7ff;margin-left:auto}.msg.ai{background:#f3f4f6}.dark .msg.ai{background:#334155}.ai-input{display:flex;gap:8px}
-.upload-box{border:2px dashed #a78bfa;border-radius:14px;padding:18px;background:#faf5ff}.dark .upload-box{background:#312e81}.upload-box h2{margin-top:0}.upload-row{display:flex;gap:10px;align-items:center}.upload-row input{flex:1}.sample{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.6}.allocation{display:grid;gap:10px}.employee-card{border:1px solid var(--line);border-radius:12px;padding:13px}.employee-card h3{margin:0 0 8px}.bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden}.bar i{display:block;height:100%;background:var(--primary)}
-.notice{position:relative}.menu{display:none;position:absolute;right:0;top:48px;width:350px;max-width:calc(100vw - 25px);background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);z-index:10}.menu.open{display:block}.menu-head{padding:13px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}.notice-item{padding:12px;border-bottom:1px solid var(--line);font-size:14px}.notice-item.unread{background:#eef2ff}.notice-item small{display:block;color:var(--muted);margin-top:4px}
-.modal-bg{display:none;position:fixed;inset:0;background:#0008;place-items:center;padding:20px;z-index:20}.modal-bg.open{display:grid}.modal{width:min(680px,100%);max-height:90vh;overflow:auto;background:var(--card);border-radius:18px;padding:22px}.modal h2{margin-top:0}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}.admin-form{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px}
-.layout{display:flex;min-height:100vh}.sidebar{width:260px;background:#1e293b;color:#fff;padding:20px}.sidebar h2{margin:0 0 20px;text-align:center}.sidebar a{display:block;padding:12px 15px;margin:8px 0;color:white;text-decoration:none;border-radius:10px;transition:.3s}.sidebar a:hover{background:#4f46e5}.content{flex:1;padding:20px;background:var(--bg)}
+.modal-bg{display:none;position:fixed;inset:0;background:#0008;place-items:center;padding:20px;z-index:20}.modal-bg.open{display:grid}.modal{width:min(680px,100%);max-height:90vh;overflow:auto;background:var(--card);border-radius:18px;padding:22px}.modal h2{margin-top:0}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.layout{display:flex;min-height:100vh}.sidebar{width:260px;background:#1e293b;color:#fff;padding:20px}.sidebar h2{margin:0 0 20px;text-align:center}.sidebar a{display:block;padding:12px 15px;margin:8px 0;color:white;text-decoration:none;border-radius:10px;transition:.3s}.sidebar a:hover, .sidebar a.active{background:#4f46e5}.content{flex:1;padding:20px;background:var(--bg)}
+table{width:100%;border-collapse:collapse}th{text-align:left;padding:12px;border-bottom:2px solid var(--line)}td{padding:12px;border-bottom:1px solid var(--line)}
 @media(max-width:1100px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:900px){.layout{flex-direction:column}.sidebar{width:100%}}
-@media(max-width:750px){.top,.task-head{flex-direction:column;align-items:flex-start}.stats,.toolbar,.admin-form{grid-template-columns:1fr}.upload-row{flex-direction:column;align-items:stretch}}
 </style>
 </head>
-<body>
+<body onload="init()">
 <div id="app"></div><div id="toast" style="display:none"></div>
 
 <script>
-const API_URL="https://script.google.com/macros/s/AKfycbzj-8D5NIf5qH2CRcYzFo25HhrHP0Zk3wUCGKkh_ChpUjUovaQJQFXCDrpfVbHYikFQ/exec";
-const DB="amba_ai_task_manager_v6",SESSION="amba_ai_session_v6";
-let db=JSON.parse(localStorage.getItem(DB)||"null")||{users:[{id:"u1",name:"Admin",email:"admin@amba.local",password:"Admin@123",role:"ADMIN"},{id:"u2",name:"Rahul",email:"rahul@amba.local",password:"Employee@123",role:"EMPLOYEE"}],tasks:[],notifications:[]};
-let session=JSON.parse(localStorage.getItem(SESSION)||sessionStorage.getItem(SESSION)||"null"),editing=null,deleting=null;
+// --- CORE CONFIG ---
+const DB_NAME="amba_ai_task_manager_v7", SESSION_KEY="amba_ai_session_v7";
+let db = JSON.parse(localStorage.getItem(DB_NAME)) || {
+    users:[{id:"u1",name:"Admin",email:"admin@amba.local",password:"Admin@123",role:"ADMIN"}],
+    tasks:[], notifications:[], masterTasks:[], recurringTasks:[]
+};
+let session = JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null"), editing=null, currentPage="dashboard";
 
-const user=()=>db.users.find(x=>x.id===session?.userId);
-const save=()=>{localStorage.setItem(DB,JSON.stringify(db));};
-const esc=x=>{let d=document.createElement("div");d.textContent=x??"";return d.innerHTML};
-
-function toast(x){
-    let t=document.getElementById("toast");
-    t.textContent=x;
+// --- HELPERS ---
+const user = () => db.users.find(x => x.id === session?.userId);
+const save = () => localStorage.setItem(DB_NAME, JSON.stringify(db));
+const esc = x => { let d=document.createElement("div"); d.textContent=x??""; return d.innerHTML };
+const toast = x => {
+    let t=document.getElementById("toast"); t.textContent=x;
     t.style.cssText="position:fixed;right:20px;bottom:20px;background:#111827;color:#fff;padding:13px 17px;border-radius:10px;z-index:99;display:block";
     setTimeout(()=>t.style.display="none",2600);
-}
+};
 
+// --- AUTH ---
 function renderLogin(){
-    document.getElementById("app").innerHTML=`<main class="login"><section class="login-card"><h1>🤖 Amba AI</h1><p>Task Management System</p><form id="loginForm"><div class="group"><label>Email</label><input id="email" type="email" required></div><div class="group"><label>Password</label><input id="password" type="password" required></div><button class="primary" style="width:100%">Login</button></form><div class="demo">Admin: admin@amba.local / Admin@123</div></section></main>`;
+    document.getElementById("app").innerHTML=`<main class="login"><section class="login-card"><h1>🤖 Amba AI V7</h1><p>Task Management System</p><form id="loginForm"><div class="group"><label>Email</label><input id="email" type="email" required value="admin@amba.local"></div><div class="group"><label>Password</label><input id="password" type="password" required value="Admin@123"></div><button class="primary" style="width:100%">Login</button></form></section></main>`;
     document.getElementById("loginForm").onsubmit=e=>{
         e.preventDefault();
         let u=db.users.find(x=>x.email===document.getElementById("email").value && x.password===document.getElementById("password").value);
         if(!u) return toast("Invalid Credentials");
-        session={userId:u.id};
-        sessionStorage.setItem(SESSION,JSON.stringify(session));
-        renderApp();
-    }
+        session={userId:u.id}; sessionStorage.setItem(SESSION_KEY,JSON.stringify(session)); renderApp();
+    };
 }
 
+// --- NAVIGATION & ROUTING ---
 function renderApp(){
     let u=user(); if(!u) return renderLogin();
-    document.getElementById("app").innerHTML=`<div class="layout">
+    setupRecurringTasks(); // Start recurring engine
+    
+    document.getElementById("app").innerHTML=`
+    <div class="layout">
         <div class="sidebar">
             <h2>🏥 Amba AI</h2>
-            <a href="#" onclick="renderApp()">📊 Dashboard</a>
-            <a href="#" onclick="toast('Coming Soon')">📚 Master Tasks</a>
+            <a href="#" class="${currentPage==='dashboard'?'active':''}" onclick="showDashboard()">📊 Dashboard</a>
+            <a href="#" class="${currentPage==='master'?'active':''}" onclick="showMasterTasks()">📚 Master Tasks</a>
             <a href="#" onclick="toast('Coming Soon')">👥 Employees</a>
+            <a href="#" onclick="toast('Coming Soon')">📈 Reports</a>
+            <hr style="border:none;border-top:1px solid #334155;margin:20px 0">
             <a href="#" id="logoutSide">🚪 Logout</a>
         </div>
-        <div class="content">
-            <header class="top">
-                <div><h1>Dashboard</h1><div class="muted">Welcome ${esc(u.name)}</div></div>
-                <div class="actions">
-                    <button class="secondary" id="theme">🌙</button>
-                    <button class="primary" id="addBtn">+ Add Task</button>
-                </div>
-            </header>
-            <section class="stats">
-                <div class="stat"><span>Total</span><strong id="total">0</strong></div>
-                <div class="stat"><span>Pending</span><strong id="pending">0</strong></div>
-                <div class="stat"><span>Completed</span><strong id="done">0</strong></div>
-            </section>
-            <div class="grid">
-                <section>
-                    <div class="toolbar"><input id="search" placeholder="🔍 Search tasks..."></div>
-                    <div id="tasks" class="tasks"></div>
-                </section>
-                <aside><section class="panel ai-panel"><h2>🤖 AI Assistant</h2><div id="chat" class="ai-chat"></div><div class="ai-input"><input id="aiText"><button class="ai-btn" id="askBtn">Ask</button></div></section></aside>
-            </div>
+        <div class="content" id="mainContent">
+            ${currentPage === 'dashboard' ? renderDashboard() : ''}
         </div>
+    </div>`;
+    
+    if(currentPage === 'dashboard') bindDashboardEvents();
+    document.getElementById("logoutSide").onclick=()=>{session=null;sessionStorage.clear();renderLogin()};
+}
+
+function showDashboard() { currentPage="dashboard"; renderApp(); }
+
+// --- DASHBOARD MODULE ---
+function renderDashboard() {
+    let u = user();
+    return `
+    <header class="top">
+        <div><h1>Dashboard</h1><div class="muted">Welcome back, ${esc(u.name)}</div></div>
+        <div class="actions">
+            <button class="secondary" onclick="document.body.classList.toggle('dark')">🌙</button>
+            <button class="primary" id="addBtn">+ Add Task</button>
+        </div>
+    </header>
+    <section class="stats">
+        <div class="stat"><span>Total</span><strong>${db.tasks.length}</strong></div>
+        <div class="stat"><span>Pending</span><strong>${db.tasks.filter(x=>x.status==="TODO").length}</strong></div>
+        <div class="stat"><span>Done</span><strong>${db.tasks.filter(x=>x.status==="DONE").length}</strong></div>
+    </section>
+    <div class="grid">
+        <section class="panel">
+            <div class="toolbar"><input id="search" placeholder="🔍 Search tasks..." oninput="renderTasksList()"></div>
+            <div id="taskList"></div>
+        </section>
+        <aside>
+            <div id="notificationsPanel">${renderNotificationsPanel()}</div>
+            <section class="panel ai-panel" style="margin-top:20px">
+                <h2>🤖 AI Assistant</h2>
+                <div id="chat" class="ai-chat"></div>
+                <div class="ai-input"><input id="aiText"><button class="ai-btn" onclick="aiAsk()">Ask</button></div>
+            </section>
+        </aside>
     </div>
+    ${renderTaskModal()}`;
+}
+
+function renderTasksList() {
+    let q = document.getElementById("search")?.value.toLowerCase() || "";
+    let filtered = db.tasks.filter(t => t.title.toLowerCase().includes(q));
+    document.getElementById("taskList").innerHTML = filtered.length ? filtered.map(t => `
+        <div class="task" style="margin-bottom:10px">
+            <div class="task-head">
+                <h3>${esc(t.title)}</h3>
+                <span class="pill ${t.priority}">${t.priority}</span>
+            </div>
+            <div class="muted">Due: ${t.dueDate || 'No Date'}</div>
+        </div>
+    `).join("") : '<div class="empty">No tasks found</div>';
+}
+
+function bindDashboardEvents() {
+    document.getElementById("addBtn").onclick = () => document.getElementById("taskModal").classList.add("open");
+    renderTasksList();
+}
+
+// --- MASTER TASKS MODULE ---
+function showMasterTasks() {
+    currentPage = "master";
+    renderApp();
+    let masterTasks = db.masterTasks || [];
+    document.getElementById("mainContent").innerHTML = `
+        <header class="top">
+            <div><h1>📚 Master Tasks</h1><div class="muted">Template management</div></div>
+            <button class="primary" onclick="openMasterModal()">+ New Template</button>
+        </header>
+        <section class="panel">
+            <table>
+                <thead><tr><th>Name</th><th>Priority</th><th>Actions</th></tr></thead>
+                <tbody>
+                    ${masterTasks.map(t => `
+                        <tr>
+                            <td><strong>${esc(t.name)}</strong></td>
+                            <td><span class="pill ${t.priority}">${t.priority}</span></td>
+                            <td><button class="secondary" onclick="applyMasterTask('${t.id}')">Use</button></td>
+                        </tr>
+                    `).join('') || '<tr><td colspan="3">No templates yet.</td></tr>'}
+                </tbody>
+            </table>
+        </section>`;
+}
+
+function applyMasterTask(id) {
+    let t = db.masterTasks.find(x => x.id === id);
+    if (!t) return;
+    currentPage = "dashboard";
+    renderApp();
+    document.getElementById("taskModal").classList.add("open");
+    document.getElementById("title").value = t.name;
+    document.getElementById("pri").value = t.priority;
+    toast("Template applied!");
+}
+
+// --- NOTIFICATIONS MODULE ---
+function renderNotificationsPanel() {
+    const u = user();
+    const notifications = (db.notifications || []).filter(n => n.userId === u.id);
+    const unread = notifications.filter(n => !n.read).length;
+    return `
+    <section class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <h3>🔔 ${unread ? `<span style="color:red">${unread}</span>` : ''} Notifications</h3>
+            <button onclick="markAllRead()" style="font-size:10px">Clear All</button>
+        </div>
+        <div style="max-height:200px;overflow-y:auto;font-size:13px">
+            ${notifications.length ? notifications.map(n => `<div style="padding:8px 0;border-bottom:1px solid var(--line); opacity:${n.read?0.5:1}">- ${esc(n.message)}</div>`).join('') : 'No notifications'}
+        </div>
+    </section>`;
+}
+
+function markAllRead() {
+    db.notifications.forEach(n => { if(n.userId === user().id) n.read = true; });
+    save(); renderApp();
+}
+
+// --- RECURRING ENGINE ---
+function setupRecurringTasks() {
+    const today = new Date().toISOString().slice(0,10);
+    (db.recurringTasks || []).forEach(rt => {
+        if (rt.enabled && rt.lastRun !== today) {
+            db.tasks.unshift({
+                id: "t"+Date.now(), title: rt.title, priority: rt.priority, 
+                status: "TODO", dueDate: today, createdAt: new Date().toISOString()
+            });
+            rt.lastRun = today;
+            db.notifications.push({userId: user().id, message: `Auto-generated: ${rt.title}`, read: false, date: new Date()});
+        }
+    });
+    save();
+}
+
+// --- MODALS & TASK SAVING ---
+function renderTaskModal() {
+    return `
     <div id="taskModal" class="modal-bg">
         <div class="modal">
             <h2>New Task</h2>
-            <form id="taskForm">
+            <form id="taskForm" onsubmit="handleSaveTask(event)">
                 <div class="group"><label>Title</label><input id="title" required></div>
+                <div class="group"><label>Priority</label>
+                    <select id="pri"><option value="LOW">Low</option><option value="MEDIUM" selected>Medium</option><option value="HIGH">High</option></select>
+                </div>
                 <div class="group"><label>Due Date</label><input id="due" type="date"></div>
-                <div class="modal-actions"><button type="button" onclick="closeModal()">Cancel</button><button class="primary">Save</button></div>
+                <div class="modal-actions">
+                    <button type="button" onclick="document.getElementById('taskModal').classList.remove('open')">Cancel</button>
+                    <button class="primary" type="submit">Save Task</button>
+                </div>
             </form>
         </div>
     </div>`;
-    bindEvents();
-    renderTasks();
 }
 
-function bindEvents(){
-    document.getElementById("logoutSide").onclick=()=>{session=null;sessionStorage.clear();renderLogin()};
-    document.getElementById("addBtn").onclick=()=>document.getElementById("taskModal").classList.add("open");
-    document.getElementById("taskForm").onsubmit=saveTask;
-    document.getElementById("theme").onclick=()=>document.body.classList.toggle("dark");
-    document.getElementById("search").oninput=renderTasks;
-    document.getElementById("askBtn").onclick=aiAsk;
-}
-
-function closeModal(){document.getElementById("taskModal").classList.remove("open")}
-
-function saveTask(e){
+function handleSaveTask(e) {
     e.preventDefault();
-    let t={id:"t"+Date.now(), title:document.getElementById("title").value, dueDate:document.getElementById("due").value, status:"TODO", assignedTo:user().id};
-    db.tasks.unshift(t); save(); closeModal(); renderTasks(); toast("Task Saved");
+    db.tasks.unshift({
+        id: "t"+Date.now(),
+        title: document.getElementById("title").value,
+        priority: document.getElementById("pri").value,
+        dueDate: document.getElementById("due").value,
+        status: "TODO"
+    });
+    save(); renderApp(); toast("Task Created");
 }
 
-function renderTasks(){
-    let q=document.getElementById("search").value.toLowerCase();
-    let a=db.tasks.filter(t=>t.title.toLowerCase().includes(q));
-    document.getElementById("total").textContent=a.length;
-    document.getElementById("pending").textContent=a.filter(x=>x.status==="TODO").length;
-    document.getElementById("done").textContent=a.filter(x=>x.status==="DONE").length;
-    document.getElementById("tasks").innerHTML=a.map(t=>`<div class="task"><h3>${esc(t.title)}</h3><div class="muted">Due: ${t.dueDate||'N/A'}</div></div>`).join("");
-}
-
-function aiAsk(){
+function aiAsk() {
     let txt = document.getElementById("aiText").value;
+    if(!txt) return;
     let chat = document.getElementById("chat");
     chat.innerHTML += `<div class="msg user">${esc(txt)}</div>`;
-    setTimeout(()=>{
-        chat.innerHTML += `<div class="msg ai">I am processing your request regarding: "${esc(txt)}"</div>`;
-        document.getElementById("aiText").value="";
-    }, 500);
+    setTimeout(() => {
+        chat.innerHTML += `<div class="msg ai">AI is analyzing your task... Done.</div>`;
+        document.getElementById("aiText").value = "";
+        chat.scrollTop = chat.scrollHeight;
+    }, 600);
 }
 
-// Initialize
-if(session) renderApp(); else renderLogin();
+function init() { if(session) renderApp(); else renderLogin(); }
 </script>
 </body>
 </html>
