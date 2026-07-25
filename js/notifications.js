@@ -1,44 +1,152 @@
-// Notifications Module for Amba AI Task Manager V6
+// ===============================
+// Notifications Module - V7
+// ===============================
 
-function renderNotificationsPanel(){
+function renderNotificationsPanel() {
+
+    if (!db.notifications) db.notifications = [];
+
     const u = user();
+    if (!u) {
+        return `
+        <section class="panel">
+            <h2>🔔 Notifications</h2>
+            <p class="muted">Please login first.</p>
+        </section>`;
+    }
+
     const notifications = db.notifications.filter(n => n.userId === u.id);
     const unread = notifications.filter(n => !n.read).length;
-    
-    const notificationsHTML = `
+
+    return `
     <section class="panel" style="margin-bottom:18px">
-        <h2>🔔 Notifications ${unread > 0 ? `<span style="background: #dc2626; color: white; border-radius: 50%; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px;">${unread}</span>` : ""}</h2>
-        
-        <div id="notificationsList" style="max-height: 400px; overflow-y: auto;">
-            ${notifications.length ? notifications.slice(0, 20).map(n => `
-                <div style="padding: 12px; border-bottom: 1px solid var(--line); ${n.read ? '' : 'background: #f3f4f6;'}">
-                    <p style="margin: 0; ${n.read ? '' : 'font-weight: bold;'}">${esc(n.message)}</p>
-                    <span class="muted" style="font-size: 12px;">${new Date(n.date).toLocaleString()}</span>
-                    ${!n.read ? `<button class="primary" style="padding: 4px 8px; font-size: 12px; margin-top: 5px;" onclick="markNotificationRead('${n.id}')">✓ Mark Read</button>` : ""}
-                </div>
-            `).join("") : "<p class='muted' style='padding: 15px;'>No notifications yet</p>"}
+
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <h2>
+                🔔 Notifications
+                ${unread ? `
+                <span style="
+                    background:#dc2626;
+                    color:white;
+                    border-radius:50%;
+                    padding:4px 9px;
+                    font-size:12px;
+                    margin-left:8px;">
+                    ${unread}
+                </span>` : ""}
+            </h2>
+
+            ${notifications.length ? `
+            <button class="secondary"
+                    onclick="markAllNotificationsRead()">
+                ✓ Mark All
+            </button>` : ""}
         </div>
+
+        <div id="notificationsList"
+             style="max-height:450px;overflow-y:auto;">
+
+            ${
+                notifications.length
+                ? notifications
+                    .sort((a,b)=>new Date(b.date)-new Date(a.date))
+                    .map(n=>`
+
+                <div style="
+                    padding:12px;
+                    margin-bottom:10px;
+                    border:1px solid var(--line);
+                    border-radius:10px;
+                    background:${n.read ? "var(--card)" : "#eef2ff"}">
+
+                    <div style="
+                        display:flex;
+                        justify-content:space-between;
+                        align-items:center;">
+
+                        <strong>${n.read ? "" : "🔵"} ${esc(n.message)}</strong>
+
+                        ${
+                            !n.read
+                            ? `<button
+                                class="primary"
+                                style="padding:4px 10px"
+                                onclick="markNotificationRead('${n.id}')">
+                                ✓
+                               </button>`
+                            : ""
+                        }
+
+                    </div>
+
+                    <div class="muted"
+                         style="margin-top:6px;font-size:12px;">
+                        ${new Date(n.date).toLocaleString()}
+                    </div>
+
+                </div>
+
+                `).join("")
+                : `<p class="muted" style="padding:15px;">
+                    No notifications available.
+                   </p>`
+            }
+
+        </div>
+
     </section>`;
-    
-    return notificationsHTML;
 }
 
 function markNotificationRead(notificationId){
-    const notif = db.notifications.find(n => n.id === notificationId);
-    if (notif) {
-        notif.read = true;
-        save();
+
+    if(!db.notifications) return;
+
+    const notif = db.notifications.find(n=>n.id===notificationId);
+
+    if(!notif) return;
+
+    notif.read = true;
+
+    save();
+
+    if(typeof renderNotifications==="function"){
         renderNotifications();
-        toast("✅ Marked as read");
     }
+
+    const panel=document.getElementById("notificationsPanel");
+
+    if(panel){
+        panel.innerHTML=renderNotificationsPanel();
+    }
+
+    toast("✅ Notification marked as read");
 }
 
 function markAllNotificationsRead(){
-    const u = user();
-    db.notifications.forEach(n => {
-        if (n.userId === u.id) n.read = true;
+
+    if(!db.notifications) return;
+
+    const u=user();
+
+    if(!u) return;
+
+    db.notifications.forEach(n=>{
+        if(n.userId===u.id){
+            n.read=true;
+        }
     });
+
     save();
-    renderNotifications();
-    toast("✅ All marked as read");
+
+    if(typeof renderNotifications==="function"){
+        renderNotifications();
+    }
+
+    const panel=document.getElementById("notificationsPanel");
+
+    if(panel){
+        panel.innerHTML=renderNotificationsPanel();
+    }
+
+    toast("✅ All notifications marked as read");
 }
