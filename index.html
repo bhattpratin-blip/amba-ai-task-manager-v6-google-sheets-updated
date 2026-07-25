@@ -319,4 +319,31 @@ function runAI() {
 
     if(cmd.toLowerCase().startsWith("add task")) {
         const title = cmd.substring(9);
-        state.tasks.unshift({ id: 'tai'+Date.now(), title: title, prio
+        state.tasks.unshift({ id: 'tai'+Date.now(), title: title, priority: 'MEDIUM', status: 'TODO', date: new Date().toISOString().split('T')[0] });
+        box.innerHTML = `<div style="color:var(--success)">Added: ${title}</div>`;
+        save(); render();
+    } else {
+        box.innerHTML = `<div style="color:var(--danger)">I only understand "Add task [name]" for now.</div>`;
+    }
+    input.value = "";
+}
+
+function addRec() {
+    const t = document.getElementById('rec-title').value;
+    if(!t) return;
+    state.recurring.push({ id: 'r'+Date.now(), title: t, lastRun: "" });
+    save(); render();
+}
+
+function logout() { if(confirm("Clear session and logout?")) { localStorage.clear(); location.reload(); } }
+function resetSystem() { if(confirm("Wipe all data permanently?")) { localStorage.clear(); location.reload(); } }
+
+function exportExcel() {
+    const ws = XLSX.utils.json_to_sheet(state.tasks);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "TaskReport");
+    XLSX.writeFile(wb, "Amba_V8_Export.xlsx");
+}
+</script>
+</body>
+</html>
