@@ -155,44 +155,15 @@ function visible(){let u=user(),q=(search.value||"").toLowerCase(),a=db.tasks.fi
 function renderTasks(){let a=visible(),today=new Date().toISOString().slice(0,10);total.textContent=a.length;pending.textContent=a.filter(x=>x.status==="TODO").length;progress.textContent=a.filter(x=>x.status==="IN_PROGRESS").length;done.textContent=a.filter(x=>x.status==="DONE").length;overdue.textContent=a.filter(x=>x.dueDate&&x.dueDate<today&&x.status!=="DONE").length;tasks.innerHTML=a.length?a.map(t=>{let ass=db.users.find(x=>x.id===t.assignedTo);return`<article class="task"><div class="task-head"><div><h3>${esc(t.title)}</h3><p>${esc(t.description||"No description")}</p></div><div class="actions"><button class="secondary" onclick="editTask('${t.id}')">Edit</button><button class="danger" onclick="askDelete('${t.id}')">Delete</button></div></div><div class="meta"><span class="pill ${t.priority.toLowerCase()}">${t.priority}</span><span class="pill status">${t.status==="TODO"?"To Do":t.status==="IN_PROGRESS"?"In Progress":"Done"}</span><span class="pill status">📅 ${dateText(t.dueDate)}</span><span class="pill status">👤 ${esc(ass?.name||"Unassigned")}</span></div></article>`}).join(""):'<div class="empty">No tasks found.</div>'}
 function renderAllocation(){let a=visible(),users=db.users.filter(x=>x.role==="EMPLOYEE");allocation.innerHTML=users.map(u=>{let x=a.filter(t=>t.assignedTo===u.id),done=x.filter(t=>t.status==="DONE").length,pending=x.filter(t=>t.status!=="DONE").length,percent=x.length?Math.round(done/x.length*100):0;return`<div class="employee-card"><h3>👤 ${esc(u.name)}</h3><div class="muted">${x.length} total · ${pending} pending · ${done} completed</div><div class="bar" style="margin-top:10px"><i style="width:${percent}%"></i></div><div class="muted" style="margin-top:5px">${percent}% completed</div></div>`}).join("")||'<div class="empty">No employees yet.</div>'}
 function renderInsights(){let a=visible(),today=new Date().toISOString().slice(0,10),over=a.filter(x=>x.dueDate&&x.dueDate<today&&x.status!=="DONE").length,high=a.filter(x=>x.priority==="HIGH"&&x.status!=="DONE").length;insights.innerHTML=`<p>📌 <b>${over}</b> overdue task(s)</p><p>🔥 <b>${high}</b> high-priority task(s) pending</p><p>✅ <b>${a.filter(x=>x.status==="DONE").length}</b> completed task(s)</p>${over?'<p>⚠️ Review overdue work allocation.</p>':'<p>🎉 No overdue tasks in this view.</p>'}`}
-
-function navigate(page){
-    currentPage = page;
-    renderApp();
-}
-
-function showDashboard(){
-    navigate("dashboard");
-}
-
-function showMasterTasks(){
-    navigate("master");
-}
-
-function showDailyTasks(){
-    navigate("daily");
-}
-
-function showWeeklyTasks(){
-    navigate("weekly");
-}
-
-function showMonthlyTasks(){
-    navigate("monthly");
-}
-
-function showEmployees(){
-    navigate("employees");
-}
-
-function showReports(){
-    navigate("reports");
-}
-
-function showSettings(){
-    navigate("settings");
-}
-
+function navigate(page){currentPage = page;renderApp();}
+function showDashboard(){navigate("dashboard");}
+function showMasterTasks(){navigate("master");}
+function showDailyTasks(){navigate("daily");}
+function showWeeklyTasks(){navigate("weekly");}
+function showMonthlyTasks(){navigate("monthly");}
+function showEmployees(){navigate("employees");}
+function showReports(){navigate("reports");}
+function showSettings(){navigate("settings");}
 function bind(){
 document.getElementById("menuDashboard")?.addEventListener("click",e=>{e.preventDefault();showDashboard();});
 document.getElementById("menuMaster")?.addEventListener("click",e=>{e.preventDefault();showMasterTasks();});
@@ -200,17 +171,8 @@ document.getElementById("menuDaily")?.addEventListener("click",e=>{e.preventDefa
 document.getElementById("menuWeekly")?.addEventListener("click",e=>{e.preventDefault();showWeeklyTasks();});
 document.getElementById("menuMonthly")?.addEventListener("click",e=>{e.preventDefault();showMonthlyTasks();});
 document.getElementById("menuSettings")?.addEventListener("click",e=>{e.preventDefault();showSettings();});
-document.getElementById("menuEmployees")
-?.addEventListener("click", e => {
-    e.preventDefault();
-    showEmployees();
-});
-
-document.getElementById("menuReports")
-?.addEventListener("click", e => {
-    e.preventDefault();
-    showReports();
-});
+document.getElementById("menuEmployees")?.addEventListener("click", e => {e.preventDefault();showEmployees();});
+document.getElementById("menuReports")?.addEventListener("click", e => {e.preventDefault();showReports();});
 cloudSync.onclick=async()=>{if(!API_URL||API_URL.includes("PASTE_YOUR"))return toast("Add Apps Script URL first");cloudReady=true;await syncDatabase();toast("Cloud sync requested")};logout.onclick=()=>{localStorage.removeItem(SESSION);sessionStorage.removeItem(SESSION);localStorage.removeItem(REMEMBER);session=null;renderLogin()};theme.onclick=()=>{document.body.classList.toggle("dark");localStorage.setItem("dark",document.body.classList.contains("dark"))};add.onclick=()=>openTask();cancel.onclick=closeTask;cancelDelete.onclick=()=>deleteModal.classList.remove("open");confirmDelete.onclick=deleteTask;[search,fe,fs,fp,sort].forEach(x=>x.addEventListener("input",()=>{renderTasks();renderAllocation();renderInsights()}));refresh.onclick=()=>{renderTasks();renderAllocation();renderInsights()};taskForm.onsubmit=saveTask;parse.onclick=quickAI;askAI.onclick=ask;aiText.onkeydown=e=>{if(e.key==="Enter")ask()};noticeBtn.onclick=()=>noticeMenu.classList.toggle("open");readAll.onclick=()=>{db.notifications.filter(n=>n.userId===user().id).forEach(n=>n.read=true);save();renderNotifications()};let uf=document.getElementById("userForm");if(uf)uf.onsubmit=createEmployee;let up=document.getElementById("uploadExcel");if(up)up.onclick=uploadExcel;let dt=document.getElementById("downloadTemplate");if(dt)dt.onclick=downloadTemplate;populateReportEmployees();let gr=document.getElementById("generateReport");if(gr)gr.onclick=generateReport;let er=document.getElementById("exportReport");if(er)er.onclick=exportReport;["reportEmployee","reportFrom","reportTo","reportType"].forEach(id=>{let el=document.getElementById(id);if(el)el.addEventListener("change",generateReport)});generateReport();let d=document.getElementById("delegateBtn");if(d)d.onclick=()=>{if(!fromEmp.value||!toEmp.value)return toast("Select employees");reassignEmployeeTasks(fromEmp.value,toEmp.value);}}
 const logoutSide = document.getElementById("logoutSide");
 if (logoutSide) {
