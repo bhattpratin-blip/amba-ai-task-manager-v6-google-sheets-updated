@@ -79,5 +79,4 @@ function createRecurringTask(taskData){
     toast(`✅ Recurring task created (${taskData.frequency})`);
 }
 
-// Initialize on app load
-setupRecurringTasks();
+// NOTE: setupRecurringTasks() is now called from index.html after db is loaded
