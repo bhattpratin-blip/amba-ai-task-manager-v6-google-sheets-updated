@@ -1,263 +1,130 @@
-// ======================================
-// Amba Pharmacy Notification Manager
-// ======================================
+// ===== NOTIFICATIONS MODULE =====
+// This module provides enhanced notification management functionality
 
-if (!db.notifications) {
-    db.notifications = [];
-}
+// Notification types
+const NOTIFICATION_TYPES = {
+    TASK_ASSIGNED: "TASK_ASSIGNED",
+    TASK_COMPLETED: "TASK_COMPLETED",
+    TASK_OVERDUE: "TASK_OVERDUE",
+    TASK_REASSIGNED: "TASK_REASSIGNED",
+    DEADLINE_APPROACHING: "DEADLINE_APPROACHING",
+    SYSTEM_MESSAGE: "SYSTEM_MESSAGE"
+};
 
-// Add Notification
-function addNotification(userId, title, message, type = "info") {
-
-    db.notifications.unshift({
-        id: "N" + Date.now() + Math.random(),
-        userId,
-        title,
-        message,
-        type,
+function createNotification(userId, message, type = "SYSTEM_MESSAGE", data = {}){
+    if(!userId) return;
+    
+    const notification = {
+        id: "n" + Date.now() + Math.random(),
+        userId: userId,
+        message: message,
+        type: type,
         read: false,
-        date: new Date().toISOString()
-    });
-
+        date: new Date().toISOString(),
+        data: data
+    };
+    
+    db.notifications.unshift(notification);
     save();
-
-    renderNotifications();
+    return notification;
 }
 
-// Browser Notification
-function browserNotification(title, body) {
-
-    if (!("Notification" in window)) return;
-
-    if (Notification.permission === "granted") {
-
-        new Notification(title, {
-            body: body,
-            icon: "icon-192.png"
-        });
-
+function markNotificationRead(notificationId){
+    const notif = db.notifications.find(x => x.id === notificationId);
+    if(notif){
+        notif.read = true;
+        save();
     }
-
 }
 
-// Ask Notification Permission
-function requestNotificationPermission() {
-
-    if (!("Notification" in window)) return;
-
-    if (Notification.permission !== "granted") {
-
-        Notification.requestPermission();
-
-    }
-
+function markAllNotificationsRead(userId){
+    db.notifications.filter(x => x.userId === userId && !x.read).forEach(x => {
+        x.read = true;
+    });
+    save();
 }
 
-// Due Today Check
-function checkDueTodayTasks() {
+function deleteNotification(notificationId){
+    db.notifications = db.notifications.filter(x => x.id !== notificationId);
+    save();
+}
 
-    if (!db.settings?.notifications) return;
+function clearAllNotifications(userId){
+    db.notifications = db.notifications.filter(x => x.userId !== userId);
+    save();
+}
 
-    let today = new Date().toISOString().slice(0,10);
+function getUnreadCount(userId){
+    return db.notifications.filter(x => x.userId === userId && !x.read).length;
+}
 
+function getUserNotifications(userId, limit = 30){
+    return db.notifications.filter(x => x.userId === userId).slice(0, limit);
+}
+
+// Auto-generate notifications for overdue tasks
+function checkOverdueTasks(){
+    const today = new Date().toISOString().slice(0,10);
+    
     db.tasks.forEach(task => {
-
-        if (
-            task.assignedTo === user().id &&
-            task.status !== "DONE" &&
-            task.dueDate === today
-        ) {
-
-            addNotification(
-                user().id,
-                "Today's Task",
-                task.title + " is due today.",
-                "warning"
+        if(task.dueDate && task.dueDate < today && task.status !== "DONE"){
+            // Check if we already notified
+            const alreadyNotified = db.notifications.find(n => 
+                n.userId === task.assignedTo && 
+                n.data?.taskId === task.id && 
+                n.type === NOTIFICATION_TYPES.TASK_OVERDUE
             );
-
-            browserNotification(
-                "Today's Task",
-                task.title + " is due today."
-            );
-
+            
+            if(!alreadyNotified){
+                createNotification(
+                    task.assignedTo,
+                    `⚠️ Task overdue: ${task.title}`,
+                    NOTIFICATION_TYPES.TASK_OVERDUE,
+                    { taskId: task.id, taskTitle: task.title }
+                );
+            }
         }
-
     });
-
 }
 
-// Overdue Check
-function checkOverdueTasks() {
-
-    if (!db.settings?.notifications) return;
-
-    let today = new Date().toISOString().slice(0,10);
-
+// Auto-generate notifications for approaching deadlines
+function checkApproachingDeadlines(){
+    const today = new Date();
+    const tomorrowPlus3 = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0,10);
+    const todayStr = today.toISOString().slice(0,10);
+    
     db.tasks.forEach(task => {
-
-        if (
-            task.assignedTo === user().id &&
-            task.status !== "DONE" &&
-            task.dueDate &&
-            task.dueDate < today
-        ) {
-
-            addNotification(
-                user().id,
-                "Overdue Task",
-                task.title + " is overdue.",
-                "danger"
+        if(task.dueDate && task.dueDate <= tomorrowPlus3 && task.dueDate >= todayStr && task.status !== "DONE"){
+            const alreadyNotified = db.notifications.find(n => 
+                n.userId === task.assignedTo && 
+                n.data?.taskId === task.id && 
+                n.type === NOTIFICATION_TYPES.DEADLINE_APPROACHING
             );
-
-            browserNotification(
-                "Overdue Task",
-                task.title + " is overdue."
-            );
-
+            
+            if(!alreadyNotified){
+                const daysLeft = Math.ceil((new Date(task.dueDate) - today) / (1000 * 60 * 60 * 24));
+                createNotification(
+                    task.assignedTo,
+                    `📅 Deadline in ${daysLeft} day(s): ${task.title}`,
+                    NOTIFICATION_TYPES.DEADLINE_APPROACHING,
+                    { taskId: task.id, taskTitle: task.title, daysLeft: daysLeft }
+                );
+            }
         }
-
     });
-
 }
 
-// Weekly Reminder
-function checkWeeklyTasks() {
-
-    let day = new Date().getDay();
-
-    if (day !== 1) return;
-
-    addNotification(
-        user().id,
-        "Weekly Reminder",
-        "Please complete all weekly tasks.",
-        "info"
-    );
-
-}
-
-// Monthly Reminder
-function checkMonthlyTasks() {
-
-    let date = new Date().getDate();
-
-    if (date !== 1) return;
-
-    addNotification(
-        user().id,
-        "Monthly Reminder",
-        "Please complete monthly pharmacy tasks.",
-        "info"
-    );
-
-}
-
-// Render Notifications
-function renderNotifications() {
-
-    let list = document.getElementById("notificationList");
-
-    if (!list) return;
-
-    let notes = db.notifications.filter(
-        n => n.userId === user().id
-    );
-
-    list.innerHTML = "";
-
-    if (notes.length === 0) {
-
-        list.innerHTML = `
-            <div class="notification">
-                No Notifications
-            </div>
-        `;
-
-        return;
-
-    }
-
-    notes.forEach(note => {
-
-        list.innerHTML += `
-
-        <div class="notification">
-
-            <strong>${note.title}</strong>
-
-            <br>
-
-            ${note.message}
-
-            <br>
-
-            <small>
-
-            ${new Date(note.date).toLocaleString()}
-
-            </small>
-
-        </div>
-
-        `;
-
-    });
-
-}
-
-// Mark All Read
-function markAllNotificationsRead() {
-
-    db.notifications.forEach(n => {
-
-        if (n.userId === user().id) {
-
-            n.read = true;
-
-        }
-
-    });
-
-    save();
-
-    renderNotifications();
-
-}
-
-// Clear Notifications
-function clearNotifications() {
-
-    if (!confirm("Clear all notifications?")) return;
-
-    db.notifications = db.notifications.filter(
-        n => n.userId !== user().id
-    );
-
-    save();
-
-    renderNotifications();
-
-}
-
-// Start Notification Service
-function startNotificationService() {
-
-    requestNotificationPermission();
-
-    checkDueTodayTasks();
-
-    checkOverdueTasks();
-
-    checkWeeklyTasks();
-
-    checkMonthlyTasks();
-
+// Run background checks periodically
+if(typeof setInterval !== 'undefined'){
+    // Check every 60 seconds
     setInterval(() => {
-
-        checkDueTodayTasks();
-
-        checkOverdueTasks();
-
-    }, 300000);
-
+        if(session && user()){
+            checkOverdueTasks();
+            checkApproachingDeadlines();
+        }
+    }, 60000);
 }
+
+// Initialize background checks on load
+checkOverdueTasks();
+checkApproachingDeadlines();
