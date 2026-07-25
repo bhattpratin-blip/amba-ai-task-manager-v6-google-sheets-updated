@@ -3,279 +3,213 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pharmacy Task Manager (Cloud Sync)</title>
+    <title>Amba AI Task Manager V6 - Google Sheets</title>
+    <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <style>
-        :root {
-            --blue-accent: #0056b3; --bg: #ffffff; --text: #333333;
-            --light-blue: #f0f7ff; --green: #28a745; --red: #d93025;
-            --shadow: 0 4px 12px rgba(0,0,0,0.08);
-        }
-
-        * { box-sizing: border-box; font-family: 'Inter', 'Segoe UI', sans-serif; }
-        body { margin: 0; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
-
-        /* Login */
-        #login-screen {
-            position: fixed; inset: 0; background: #fff;
-            display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999;
-        }
-        .login-box { width: 90%; max-width: 360px; text-align: center; border: 1px solid #eee; padding: 30px; border-radius: 16px; box-shadow: var(--shadow); }
-        .login-box input { width: 100%; padding: 14px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; }
-        
-        /* Sidebar */
-        .sidebar {
-            width: 260px; background: #fff; border-right: 1px solid #edf2f7;
-            display: flex; flex-direction: column; position: fixed; height: 100vh; transition: 0.3s;
-        }
-        .sidebar-header { padding: 25px; font-weight: 800; font-size: 1.1rem; color: var(--blue-accent); border-bottom: 1px solid #f7fafc; }
-        .nav-item { padding: 14px 25px; color: #4a5568; text-decoration: none; cursor: pointer; display: flex; align-items: center; gap: 12px; font-size: 0.95rem; }
-        .nav-item:hover, .nav-item.active { background: var(--light-blue); color: var(--blue-accent); font-weight: 600; }
-        
-        /* Main */
-        .main { margin-left: 260px; flex: 1; padding: 30px; max-width: 1100px; }
-        .header { margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
-        .sync-status { font-size: 0.75rem; color: #718096; display: flex; align-items: center; gap: 5px; }
-        .dot { width: 8px; height: 8px; border-radius: 50%; background: #cbd5e0; }
-        .dot.online { background: var(--green); box-shadow: 0 0 8px var(--green); }
-
-        /* Task Cards */
-        .task-list { display: flex; flex-direction: column; gap: 15px; }
-        .task-item {
-            background: white; border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px;
-            display: flex; align-items: center; justify-content: space-between;
-        }
-        .task-info h4 { margin: 0; font-size: 1rem; color: #2d3748; }
-        .task-info p { margin: 5px 0 0; font-size: 0.85rem; color: #718096; }
-        
-        /* Tapping Circle */
-        .circle-check {
-            width: 40px; height: 40px; border: 2.5px solid #cbd5e0; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;
-        }
-        .circle-check.checked { border-color: var(--green); background: var(--green); color: white; }
-        .circle-check.mandatory { border: none; background: #f7fafc; color: #a0aec0; cursor: default; }
-
-        .btn { padding: 10px 20px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
-        .btn-blue { background: var(--blue-accent); color: white; }
-        
-        #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #2d3748; color: white; padding: 12px 25px; border-radius: 50px; display: none; font-size: 0.9rem; z-index: 10000; }
-
-        @media (max-width: 850px) {
-            .sidebar { width: 0; overflow: hidden; }
-            .main { margin-left: 0; padding: 15px; }
-        }
+        :root{--bg:#f4f7fb;--card:#fff;--text:#18212f;--muted:#6b7280;--line:#e5e7eb;--primary:#4f46e5;--ai:#7c3aed;--danger:#dc2626;--shadow:0 10px 30px #00000012}
+        *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,sans-serif}body.dark{--bg:#0f172a;--card:#1e293b;--text:#f8fafc;--muted:#94a3b8;--line:#334155}
+        button,input,select,textarea{font:inherit}button{border:0;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}.primary{background:var(--primary);color:#fff}.ai-btn{background:var(--ai);color:#fff}.secondary{background:var(--card);color:var(--text);border:1px solid var(--line)}.danger{background:#fee2e2;color:#991b1b}.success{background:#dcfce7;color:#166534}
+        input,select,textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text)}textarea{min-height:95px;resize:vertical}
+        .login{min-height:100vh;display:grid;place-items:center;padding:20px}.login-card{width:min(440px,100%);background:var(--card);padding:32px;border-radius:20px;box-shadow:var(--shadow)}.login-card h1{text-align:center}.login-card p{text-align:center;color:var(--muted)}.group{margin:14px 0}.group label{display:block;font-weight:700;margin-bottom:6px}.demo{background:var(--bg);padding:14px;border-radius:12px;color:var(--muted);font-size:13px;margin-top:18px}
+        .shell{max-width:1450px;margin:auto;padding:20px}.top{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:22px}.top h1{margin:0}.muted{color:var(--muted);font-size:13px}.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+        .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:18px}.stat,.panel,.task{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}.stat{padding:18px}.stat span{color:var(--muted);font-size:13px}.stat strong{display:block;font-size:28px;margin-top:8px}
+        .grid{display:grid;grid-template-columns:1fr 370px;gap:18px}.panel{padding:18px}.toolbar{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr 1fr auto;gap:10px;margin-bottom:16px}.tasks{display:grid;gap:14px}.task{padding:18px}.task-head{display:flex;justify-content:space-between;gap:15px}.task h3{margin:0 0 8px}.task p{color:var(--muted);white-space:pre-wrap}.meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}.pill{border-radius:999px;padding:6px 9px;font-size:12px;font-weight:700}.high{background:#fee2e2;color:#991b1b}.medium{background:#fef3c7;color:#92400e}.low{background:#dcfce7;color:#166534}.status{background:#e0e7ff;color:#3730a3}.empty{text-align:center;padding:45px;color:var(--muted)}
+        .ai-panel{background:linear-gradient(135deg,#ede9fe,#f5f3ff);color:#312e81;border:1px solid #ddd6fe}.dark .ai-panel{background:#312e81;color:#ede9fe}.ai-panel h2{margin-top:0}.ai-chat{height:230px;overflow:auto;background:var(--card);border-radius:12px;padding:12px;margin:12px 0;color:var(--text)}.msg{padding:9px 11px;border-radius:10px;margin:7px 0;max-width:95%;font-size:14px}.msg.user{background:#e0e7ff;margin-left:auto}.msg.ai{background:#f3f4f6}.dark .msg.ai{background:#334155}.ai-input{display:flex;gap:8px}
+        .upload-box{border:2px dashed #a78bfa;border-radius:14px;padding:18px;background:#faf5ff}.dark .upload-box{background:#312e81}.upload-box h2{margin-top:0}.upload-row{display:flex;gap:10px;align-items:center}.upload-row input{flex:1}.sample{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.6}.allocation{display:grid;gap:10px}.employee-card{border:1px solid var(--line);border-radius:12px;padding:13px}.employee-card h3{margin:0 0 8px}.bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden}.bar i{display:block;height:100%;background:var(--primary)}
+        .notice{position:relative}.menu{display:none;position:absolute;right:0;top:48px;width:350px;max-width:calc(100vw - 25px);background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);z-index:10}.menu.open{display:block}.menu-head{padding:13px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}.notice-item{padding:12px;border-bottom:1px solid var(--line);font-size:14px}.notice-item.unread{background:#eef2ff}.notice-item small{display:block;color:var(--muted);margin-top:4px}
+        .modal-bg{display:none;position:fixed;inset:0;background:#0008;place-items:center;padding:20px;z-index:20}.modal-bg.open{display:grid}.modal{width:min(680px,100%);max-height:90vh;overflow:auto;background:var(--card);border-radius:18px;padding:22px}.modal h2{margin-top:0}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}.admin-form{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px}
+        .layout{display:flex;min-height:100vh}.sidebar{width:260px;background:#1e293b;color:#fff;padding:20px}.sidebar h2{margin:0 0 20px;text-align:center}.sidebar a{display:block;padding:12px 15px;margin:8px 0;color:white;text-decoration:none;border-radius:10px;transition:.3s}.sidebar a:hover{background:#4f46e5}.content{flex:1;padding:20px;background:var(--bg)}
+        #toast{position:fixed;right:20px;bottom:20px;background:#111827;color:#fff;padding:13px 17px;border-radius:10px;z-index:99;display:none}
+        @media(max-width:1100px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,1fr)}}
+        @media(max-width:750px){.top,.task-head{flex-direction:column;align-items:flex-start}.stats,.toolbar,.admin-form{grid-template-columns:1fr}.upload-row{flex-direction:column;align-items:stretch}.actions{width:100%}.actions button{flex:1}.layout{flex-direction:column}.sidebar{width:100%}}
     </style>
 </head>
 <body>
-
-    <!-- Login -->
-    <div id="login-screen">
-        <div class="login-box">
-            <h2 style="color: var(--blue-accent); margin-bottom: 5px;">Pharmacy Manager</h2>
-            <p style="color: #718096; font-size: 0.9rem; margin-bottom: 25px;">Sign in to sync tasks</p>
-            <input type="text" id="username" placeholder="Employee ID (e.g. P001)">
-            <input type="password" id="password" placeholder="Password">
-            <button class="btn btn-blue" style="width: 100%; margin-top: 15px;" onclick="attemptLogin()">Sign In</button>
-            <div id="login-loader" style="display:none; margin-top:10px; font-size:0.8rem; color:var(--blue-accent);">Connecting to Cloud...</div>
-        </div>
-    </div>
-
-    <!-- Sidebar -->
-    <nav class="sidebar" id="app-sidebar" style="display: none;">
-        <div class="sidebar-header">PHARMACY V1.0</div>
-        <div class="nav-group">
-            <div class="nav-item active" onclick="setView('home')">🏠 Home Screen</div>
-            <div class="nav-item" onclick="setView('history')">📜 Audit Timeline</div>
-            <div id="admin-tools" style="display: none;">
-                <div style="padding: 20px 25px 10px; font-size: 0.7rem; color: #a0aec0; font-weight: 700;">ADMINISTRATION</div>
-                <div class="nav-item" onclick="setView('staff')">👥 Staff List</div>
-                <div class="nav-item" onclick="setView('excel')">📥 Excel Import</div>
-            </div>
-            <div id="hod-tools" style="display: none;">
-                <div style="padding: 20px 25px 10px; font-size: 0.7rem; color: #a0aec0; font-weight: 700;">HOD OVERSIGHT</div>
-                <div class="nav-item" onclick="setView('reports')">📊 View Reports</div>
-                <div class="nav-item" onclick="setView('close-day')" style="color: var(--red);">🔒 Close Day</div>
-            </div>
-        </div>
-        <div class="nav-item" onclick="logout()" style="margin-top: auto; border-top: 1px solid #f7fafc;">🚪 Sign Out</div>
-    </nav>
-
-    <main class="main" id="app-main" style="display: none;">
-        <div class="header">
-            <h2 id="view-title">Home</h2>
-            <div class="sync-status"><span class="dot" id="sync-dot"></span> <span id="sync-text">Local Mode</span></div>
-        </div>
-        <div id="view-container"></div>
-    </main>
-
+    <div id="app"></div>
     <div id="toast"></div>
 
-    <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbzj-8D5NIf5qH2CRcYzFo25HhrHP0Zk3wUCGKkh_ChpUjUovaQJQFXCDrpfVbHYikFQ/exec";
-        
-        let db = JSON.parse(localStorage.getItem('pharmacy_db')) || {
-            users: [
-                {id: 'P001', name: 'Rohan Joshi', role: 'STAFF', onLeave: false},
-                {id: 'P002', name: 'Kevin', role: 'ADMIN', onLeave: false},
-                {id: 'P003', name: 'Amit Patel', role: 'HOD', onLeave: false}
-            ],
-            tasks: [
-                {id: 't1', title: 'Refrigerator Temperature', desc: 'Check fridge is 2-8°C', primary: 'P001', backup: 'P002', type: 'TICK'},
-                {id: 't2', title: 'Cash Counter Cleaning', desc: 'Sanitize all surfaces', primary: 'P001', backup: 'P002', type: 'TICK'},
-                {id: 't3', title: 'Wear ID Card', desc: 'Mandatory uniform rule', primary: 'P001', backup: 'P002', type: 'MANDATORY'}
-            ],
-            logs: [],
-            lastSync: null
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbzj-8D5NIf5qH2CRcYzFo25HhrHP0Zk3wUCGKkh_ChpUjUovaQJQFXCDrpfVbHYikFQ/exec";
+const DB = "amba_ai_task_manager_v6", SESSION = "amba_ai_session_v6", REMEMBER = "amba_ai_remember_v6";
+
+let db = JSON.parse(localStorage.getItem(DB)) || {
+    users: [
+        {id:"u1", name:"Admin", email:"admin@amba.local", password:"Admin@123", role:"ADMIN"},
+        {id:"u2", name:"Rahul", email:"rahul@amba.local", password:"Employee@123", role:"EMPLOYEE"}
+    ],
+    tasks: [],
+    notifications: []
+};
+
+let session = JSON.parse(localStorage.getItem(SESSION) || sessionStorage.getItem(SESSION) || "null");
+let editing = null, deleting = null, cloudReady = false;
+
+const app = document.getElementById('app');
+const user = () => db.users.find(x => x.id === session?.userId);
+
+function localSave() { localStorage.setItem(DB, JSON.stringify(db)); }
+function save() { localSave(); }
+
+function toast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.style.display = "block";
+    setTimeout(() => t.style.display = "none", 2600);
+}
+
+function esc(x) { let d = document.createElement("div"); d.textContent = x ?? ""; return d.innerHTML; }
+function dateText(d) { return d ? new Date(d + "T00:00:00").toLocaleDateString("en-IN") : "No due date"; }
+
+function renderLogin() {
+    app.innerHTML = `
+    <main class="login">
+        <section class="login-card">
+            <h1>🤖 Amba AI Task Manager</h1>
+            <p>Smart task management with Excel work allocation</p>
+            <form id="loginForm">
+                <div class="group"><label>Email</label><input id="email" type="email" required></div>
+                <div class="group"><label>Password</label><input id="password" type="password" required></div>
+                <button class="primary" style="width:100%">Login</button>
+            </form>
+            <div class="demo"><b>Admin:</b> admin@amba.local / Admin@123</div>
+        </section>
+    </main>`;
+    
+    document.getElementById('loginForm').onsubmit = e => {
+        e.preventDefault();
+        const emailVal = document.getElementById('email').value.toLowerCase();
+        const passVal = document.getElementById('password').value;
+        let x = db.users.find(u => u.email.toLowerCase() === emailVal && u.password === passVal);
+        if (!x) return toast("Invalid login");
+        session = { userId: x.id };
+        sessionStorage.setItem(SESSION, JSON.stringify(session));
+        renderApp();
+    };
+}
+
+function renderApp() {
+    let u = user();
+    if (!u) return renderLogin();
+
+    app.innerHTML = `
+    <div class="layout">
+        <div class="sidebar">
+            <h2>🏥 Amba AI</h2>
+            <a href="#" class="nav-link" data-page="dashboard">📊 Dashboard</a>
+            <a href="#" class="nav-link" data-page="employees">👥 Employees</a>
+            <a href="#" class="nav-link" data-page="reports">📈 Reports</a>
+            <hr>
+            <a href="#" id="logoutSide">🚪 Logout</a>
+        </div>
+        <div class="content">
+            <header class="top">
+                <div><h1>Dashboard</h1><div class="muted">Welcome ${esc(u.name)}</div></div>
+                <div class="actions">
+                    <button class="primary" id="addBtn">+ Add Task</button>
+                    <button class="secondary" id="logoutBtn">Logout</button>
+                </div>
+            </header>
+            
+            <section class="stats">
+                <div class="stat"><span>Total</span><strong id="total">0</strong></div>
+                <div class="stat"><span>Done</span><strong id="done">0</strong></div>
+                <div class="stat"><span>Pending</span><strong id="pending">0</strong></div>
+            </section>
+
+            <div class="grid">
+                <section class="panel">
+                    <div id="tasks" class="tasks"></div>
+                </section>
+                <aside class="panel ai-panel">
+                    <h2>🤖 AI Assistant</h2>
+                    <div id="chat" class="ai-chat"></div>
+                    <div class="ai-input">
+                        <input id="aiText" placeholder="Ask something...">
+                        <button class="ai-btn" id="askAI">Ask</button>
+                    </div>
+                </aside>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modals -->
+    <div id="taskModal" class="modal-bg">
+        <div class="modal">
+            <h2>Task Details</h2>
+            <form id="taskForm">
+                <div class="group"><label>Title</label><input id="title" required></div>
+                <div class="group"><label>Priority</label><select id="pri"><option>LOW</option><option selected>MEDIUM</option><option>HIGH</option></select></div>
+                <div class="modal-actions">
+                    <button type="button" class="secondary" onclick="document.getElementById('taskModal').classList.remove('open')">Cancel</button>
+                    <button class="primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>`;
+
+    bindEvents();
+    renderTasks();
+}
+
+function bindEvents() {
+    // Logout buttons
+    const doLogout = () => { sessionStorage.clear(); location.reload(); };
+    document.getElementById('logoutBtn').onclick = doLogout;
+    document.getElementById('logoutSide').onclick = doLogout;
+
+    // Modal
+    document.getElementById('addBtn').onclick = () => document.getElementById('taskModal').classList.add('open');
+    document.getElementById('taskForm').onsubmit = (e) => {
+        e.preventDefault();
+        const newTask = {
+            id: "t" + Date.now(),
+            title: document.getElementById('title').value,
+            priority: document.getElementById('pri').value,
+            status: "TODO",
+            assignedTo: session.userId
         };
+        db.tasks.unshift(newTask);
+        save();
+        document.getElementById('taskModal').classList.remove('open');
+        renderTasks();
+        toast("Task added!");
+    };
 
-        let currentUser = null;
-        let cloudReady = false;
+    // Sidebar navigation
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.onclick = (e) => {
+            e.preventDefault();
+            toast("Navigating to " + e.target.dataset.page);
+        };
+    });
+}
 
-        // --- Cloud Sync Logic ---
-        async function apiPost(payload) {
-            try {
-                const r = await fetch(API_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify(payload)
-                });
-                return await r.json();
-            } catch (e) {
-                console.error("Sync Error:", e);
-                return { success: false };
-            }
-        }
+function renderTasks() {
+    const taskContainer = document.getElementById('tasks');
+    const u = user();
+    const myTasks = db.tasks.filter(t => t.assignedTo === u.id);
+    
+    document.getElementById('total').textContent = myTasks.length;
+    document.getElementById('done').textContent = myTasks.filter(t => t.status === "DONE").length;
+    document.getElementById('pending').textContent = myTasks.filter(t => t.status !== "DONE").length;
 
-        async function syncWithCloud() {
-            document.getElementById('sync-text').innerText = "Syncing...";
-            const res = await apiPost({ action: "syncDatabase", database: db });
-            if (res.success) {
-                document.getElementById('sync-dot').classList.add('online');
-                document.getElementById('sync-text').innerText = "Cloud Synced";
-                db.lastSync = new Date().getTime();
-                cloudReady = true;
-                localStorage.setItem('pharmacy_db', JSON.stringify(db));
-            } else {
-                document.getElementById('sync-dot').classList.remove('online');
-                document.getElementById('sync-text').innerText = "Offline (Local)";
-            }
-        }
+    taskContainer.innerHTML = myTasks.length ? myTasks.map(t => `
+        <div class="task">
+            <h3>${esc(t.title)}</h3>
+            <span class="pill ${t.priority.toLowerCase()}">${t.priority}</span>
+        </div>
+    `).join('') : '<p class="empty">No tasks yet.</p>';
+}
 
-        async function loadFromCloud() {
-            try {
-                const r = await fetch(API_URL);
-                const remote = await r.json();
-                if (remote && remote.tasks) {
-                    db = remote;
-                    localStorage.setItem('pharmacy_db', JSON.stringify(db));
-                    cloudReady = true;
-                }
-            } catch(e) { console.warn("Cloud load failed, using local."); }
-        }
+// Initialize
+if (session && user()) renderApp(); else renderLogin();
+</script>
 
-        // --- Auth ---
-        async function attemptLogin() {
-            const u = document.getElementById('username').value;
-            const p = document.getElementById('password').value;
-            const user = db.users.find(x => x.id === u && p === "123");
-
-            if (user) {
-                document.getElementById('login-loader').style.display = 'block';
-                await loadFromCloud(); // Get latest data before opening
-                
-                currentUser = user;
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('app-sidebar').style.display = 'flex';
-                document.getElementById('app-main').style.display = 'block';
-                
-                if(user.role === 'ADMIN' || user.role === 'HOD') document.getElementById('admin-tools').style.display = 'block';
-                if(user.role === 'HOD') document.getElementById('hod-tools').style.display = 'block';
-                
-                setView('home');
-                syncWithCloud();
-            } else {
-                alert("Invalid Credentials");
-            }
-        }
-
-        function logout() { location.reload(); }
-
-        // --- View Engine ---
-        function setView(v) {
-            const container = document.getElementById('view-container');
-            const today = new Date().toLocaleDateString();
-            document.getElementById('view-title').innerText = v.charAt(0).toUpperCase() + v.slice(1);
-
-            if (v === 'home') {
-                const myTasks = db.tasks.filter(t => {
-                    const primary = db.users.find(u => u.id === t.primary);
-                    return primary.onLeave ? t.backup === currentUser.id : t.primary === currentUser.id;
-                });
-                const doneCount = db.logs.filter(l => l.date === today && l.userId === currentUser.id).length;
-
-                container.innerHTML = `
-                    <div style="background:var(--light-blue); padding:20px; border-radius:12px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
-                        <div>
-                            <h3 style="margin:0; color:var(--blue-accent);">Today's Progress</h3>
-                            <p style="margin:5px 0 0; font-size:0.9rem;">${doneCount} of ${myTasks.length} tasks completed</p>
-                        </div>
-                        <button class="btn ${currentUser.onLeave ? 'btn-blue' : ''}" style="background:${currentUser.onLeave ? '' : '#fff'}; color:${currentUser.onLeave ? '' : 'var(--red)'}; border:${currentUser.onLeave ? '' : '1px solid var(--red)'}" onclick="toggleLeave()">
-                            ${currentUser.onLeave ? 'Return from Leave' : 'Mark On Leave'}
-                        </button>
-                    </div>
-
-                    <div class="task-list">
-                        ${myTasks.map(t => {
-                            const done = db.logs.find(l => l.taskId === t.id && l.date === today);
-                            const isMandatory = t.type === 'MANDATORY';
-                            return `
-                                <div class="task-item">
-                                    <div class="task-info">
-                                        <h4>${t.title}</h4>
-                                        <p>${t.desc}</p>
-                                    </div>
-                                    <div class="circle-check ${done ? 'checked' : ''} ${isMandatory ? 'mandatory' : ''}" 
-                                         onclick="tickTask('${t.id}', ${isMandatory})">
-                                        ${isMandatory ? 'ℹ️' : (done ? '✔' : '○')}
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                `;
-            } else if (v === 'history') {
-                container.innerHTML = `<h3>Activity Audit</h3><div class="task-list">
-                    ${db.logs.filter(l => l.userId === currentUser.id).reverse().map(l => `
-                        <div class="task-item"><div><b>${l.action}</b><br><small>${l.date} | ${l.time}</small></div></div>
-                    `).join('')}
-                </div>`;
-            }
-        }
-
-        // --- Actions ---
-        function tickTask(id, isMandatory) {
-            if (isMandatory || new Date().getHours() >= 22) return;
-            const today = new Date().toLocaleDateString();
-            if (db.logs.find(l => l.taskId === id && l.date === today)) return;
-
-            const t = db.tasks.find(x => x.id === id);
-            db.logs.push({ taskId: id, action: `Ticked: ${t.title}`, userId: currentUser.id, date: today, time: new Date().toLocaleTimeString() });
-            save(); setView('home'); syncWithCloud();
-            toast("Task Marked Complete");
-        }
-
-        function toggleLeave() {
-            currentUser.onLeave = !currentUser.onLeave;
-            db.logs.push({ action: currentUser.onLeave ? "Marked On Leave" : "Returned from Leave", userId: currentUser.id, date: new Date().toLocaleDateString(), time: new Date().toLocaleTimeString() });
-            save(); setView('home'); syncWithCloud();
-        }
-
-        function toast(msg) {
-            const t = document.getElementById('toast'); t.innerText = msg; t.style.display = 'block';
-            setTimeout(() => t.style.display = 'none', 3000);
-        }
-
-    </script>
+<!-- External files (Ensure these exist in your repository) -->
+<script src="js/settings.js"></script>
+<script src="js/masterTasks.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/recurringTasks.js"></script>
 </body>
 </html>
