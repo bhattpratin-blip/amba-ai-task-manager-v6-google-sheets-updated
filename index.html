@@ -87,9 +87,10 @@
 
 <script>
 // ==========================================
-// 1. DATA STATE
+// 1. DATA STATE & CONFIG
 // ==========================================
-const API_URL = https://script.google.com/macros/s/AKfycbxJ9m1ZlRoLOVo_LZl4khk85D0Fv0ZV2bFndUAoiZ_vma61KcA8F6iz6zOU9N9pO188/execconst STORAGE_KEY = "PHARMACY_MANAGER_V8_5";
+const API_URL = "https://script.google.com/macros/s/AKfycbxJ9m1ZlRoLOVo_LZl4khk85D0Fv0ZV2bFndUAoiZ_vma61KcA8F6iz6zOU9N9pO188/exec";
+const STORAGE_KEY = "PHARMACY_MANAGER_V8_5";
 
 let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
     tasks: [],
@@ -101,13 +102,25 @@ let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
 
 const save = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    if(state.settings.syncEnabled) syncCloud();
+    // Auto-sync if enabled
+    if(state.settings.syncEnabled) syncCloud(false); 
 };
 
-async function syncCloud() {
+async function syncCloud(showAlert = true) {
+    if(!state.settings.syncEnabled && showAlert) {
+        alert("Sync is currently disabled in Settings.");
+        return;
+    }
     try {
-        await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'syncDatabase', database: state }) });
-    } catch(e) { console.warn("Sync Offline"); }
+        const response = await fetch(API_URL, { 
+            method: 'POST', 
+            body: JSON.stringify({ action: 'syncDatabase', database: state }) 
+        });
+        if(showAlert) alert("✅ Cloud Sync Successful!");
+    } catch(e) { 
+        console.warn("Sync Offline"); 
+        if(showAlert) alert("❌ Sync Failed. Check internet or API URL.");
+    }
 }
 
 // ==========================================
@@ -120,13 +133,19 @@ function handleLogin() {
     const pass = document.getElementById('log-pass').value;
     if(user === "admin" && pass === "123") {
         state.session = "admin";
-        save(); render();
-    } else alert("Invalid Login");
+        save(); 
+        render();
+    } else {
+        alert("Invalid Login Credentials");
+    }
 }
 
 function logout() {
-    state.session = null;
-    save(); render();
+    if(confirm("Are you sure you want to logout?")) {
+        state.session = null;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        render();
+    }
 }
 
 function nav(v) { state.view = v; render(); }
@@ -142,8 +161,9 @@ function render() {
             <div class="login-screen">
                 <div class="login-card">
                     <h1>Pharmacy Task Manager</h1>
-                    <input type="text" id="log-user" placeholder="User (admin)" value="admin">
-                    <input type="password" id="log-pass" placeholder="Password (123)" value="123">
+                    <p class="muted">Management Login</p>
+                    <input type="text" id="log-user" placeholder="Username" value="admin">
+                    <input type="password" id="log-pass" placeholder="Password" value="123">
                     <button class="btn btn-primary" style="width:100%" onclick="handleLogin()">Login</button>
                 </div>
             </div>`;
@@ -187,21 +207,27 @@ function renderView() {
                 <div class="panel"><h2>${pending}</h2><p>Pending Tasks</p></div>
                 <div class="panel"><h2>${state.employees.length}</h2><p>Team Members</p></div>
             </div>
-            <div class="panel"><h3>Quick Sync</h3><button class="btn btn-primary" onclick="syncCloud()">Sync Now with Google Sheet</button></div>
+            <div class="panel">
+                <h3>Cloud Integration</h3>
+                <p class="muted">Sync your local data with the connected Google Sheet.</p>
+                <button class="btn btn-primary" onclick="syncCloud(true)">
+                    <i class="fas fa-sync"></i> Sync Now with Google Sheet
+                </button>
+            </div>
         `;
     } 
     else if (state.view === 'tasks') {
         mount.innerHTML = `
             <div class="panel">
                 <table>
-                    <thead><tr><th>Task</th><th>Assigned To</th><th>Status</th><th>Notify</th></tr></thead>
+                    <thead><tr><th>Task</th><th>Assigned To</th><th>Status</th><th>WhatsApp</th></tr></thead>
                     <tbody>
                         ${state.tasks.map(t => {
                             const emp = state.employees.find(e => e.id === t.empId);
                             return `
                             <tr>
                                 <td>${t.title}</td>
-                                <td>${emp ? emp.name : 'Unassigned'}</td>
+                                <td><b>${emp ? emp.name : 'Unassigned'}</b></td>
                                 <td><button class="btn" onclick="toggleTask('${t.id}')">${t.status==='DONE'?'✅':'⭕'}</button></td>
                                 <td>
                                     ${t.status!=='DONE' && emp && emp.phone ? 
@@ -264,7 +290,9 @@ function addTask() {
     const empId = document.getElementById('f-emp').value;
     if(!title) return;
     state.tasks.unshift({ id: 't'+Date.now(), title, empId, status: 'TODO' });
-    save(); closeModal('task-modal'); render();
+    save(); 
+    closeModal('task-modal'); 
+    render();
 }
 
 function addEmployee() {
@@ -273,22 +301,33 @@ function addEmployee() {
     const role = document.getElementById('fe-role').value;
     if(!name) return;
     state.employees.push({ id: 'e'+Date.now(), name, phone, role });
-    save(); closeModal('emp-modal'); render();
+    save(); 
+    closeModal('emp-modal'); 
+    render();
 }
 
 function deleteEmp(id) {
-    state.employees = state.employees.filter(e => e.id !== id);
-    save(); render();
+    if(confirm("Delete this employee?")) {
+        state.employees = state.employees.filter(e => e.id !== id);
+        save(); 
+        render();
+    }
 }
 
 function toggleTask(id) {
     const t = state.tasks.find(x => x.id === id);
-    if(t) { t.status = t.status === 'DONE' ? 'TODO' : 'DONE'; save(); render(); }
+    if(t) { 
+        t.status = t.status === 'DONE' ? 'TODO' : 'DONE'; 
+        save(); 
+        render(); 
+    }
 }
 
 function sendWhatsApp(phone, task) {
-    const msg = encodeURIComponent(`Hello, your task "${task}" is still incomplete. Please finish it as soon as possible.`);
-    window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+    // Clean phone number: remove non-digits
+    const cleanPhone = phone.replace(/\D/g, '');
+    const msg = encodeURIComponent(`🚨 *Pharmacy Task Reminder*\n\nHello, the task: *"${task}"* is still incomplete. Please update the status as soon as possible.`);
+    window.open(`https://wa.me/${cleanPhone}?text=${msg}`, '_blank');
 }
 </script>
 </body>
