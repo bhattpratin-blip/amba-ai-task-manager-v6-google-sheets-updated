@@ -3,147 +3,296 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pharmacy Task Management v8.9</title>
+    <title>Pharmacy Management v9.0</title>
+    <!-- Libraries -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <style>
-        :root { --primary: #10b981; --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --muted: #64748b; --line: #e2e8f0; --sidebar: #064e3b; --danger: #ef4444; --shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); }
-        body.dark { --bg: #0f172a; --card: #1e293b; --text: #f1f5f9; --line: #334155; --sidebar: #020617; }
-        * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
-        body { margin: 0; background: var(--bg); color: var(--text); overflow: hidden; }
-        .login-screen { height: 100vh; display: grid; place-items: center; background: #f1f5f9; color: #0f172a; }
+        :root { 
+            --primary: #10b981; --bg: #f8fafc; --card: #ffffff; --text: #0f172a; 
+            --muted: #64748b; --line: #e2e8f0; --sidebar: #064e3b; --danger: #ef4444; 
+            --shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); 
+        }
+        body { 
+            margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; overflow: hidden; 
+            background-size: cover; background-position: center; transition: 0.3s;
+        }
+        /* Login Screen */
+        .login-screen { height: 100vh; display: grid; place-items: center; background: #f1f5f9; position: fixed; inset: 0; z-index: 9999; }
         .login-card { background: white; padding: 40px; border-radius: 24px; box-shadow: var(--shadow); width: 100%; max-width: 400px; text-align: center; }
-        .app-container { display: flex; height: 100vh; width: 100vw; }
+        
+        /* Layout */
+        .app-container { display: flex; height: 100vh; width: 100vw; background: rgba(255,255,255,0.8); backdrop-filter: blur(5px); }
         .sidebar { width: 260px; background: var(--sidebar); color: white; display: flex; flex-direction: column; flex-shrink: 0; }
-        .nav-links { flex: 1; padding: 20px 15px; overflow-y: auto; }
-        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #94a3b8; text-decoration: none; border-radius: 10px; margin-bottom: 5px; cursor: pointer; font-size: 0.9rem; transition: 0.2s; }
+        .nav-links { flex: 1; padding: 20px 15px; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #94a3b8; text-decoration: none; border-radius: 10px; margin-bottom: 5px; cursor: pointer; font-size: 0.9rem; }
         .nav-item:hover, .nav-item.active { background: var(--primary); color: white; }
-        .main-content { flex: 1; padding: 30px; overflow-y: auto; position: relative; }
+        
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
         .panel { background: var(--card); border-radius: 16px; border: 1px solid var(--line); padding: 20px; box-shadow: var(--shadow); margin-bottom: 25px; }
-        .btn { padding: 10px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; border: none; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+        
+        /* Components */
+        .profile-img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); margin-bottom: 10px; }
+        .btn { padding: 10px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-danger { background: var(--danger); color: white; }
-        .btn-whatsapp { background: #25d366; color: white; }
-        input, select { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+        .btn-whatsapp { background: #25d366; color: white; padding: 5px 10px; font-size: 0.8rem; }
+        
+        input, select { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 10px; border: 1px solid var(--line); }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--line); }
+
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; place-items: center; }
         .modal-overlay.active { display: grid; }
         .modal { background: var(--card); padding: 30px; border-radius: 20px; width: 420px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--line); }
-        .notif-badge { background: var(--danger); color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.7rem; margin-left: auto; }
     </style>
 </head>
 <body onload="init()">
-    <div id="app-root"></div>
 
-    <!-- Modals -->
-    <div class="modal-overlay" id="modal-task"><div class="modal"><h2>New Task</h2><input id="f-t-title" placeholder="Task Name"><select id="f-t-user"></select><input type="date" id="f-t-date"><select id="f-t-pri"><option value="HIGH">Urgent</option><option value="MEDIUM" selected>Normal</option></select><button class="btn btn-primary" onclick="saveTask()">Save</button><button class="btn" onclick="closeModal('modal-task')">Cancel</button></div></div>
-    <div class="modal-overlay" id="modal-user"><div class="modal"><h2>Add Staff</h2><input id="f-u-name" placeholder="Name"><input id="f-u-email" placeholder="Email"><input id="f-u-pass" type="password" placeholder="Password"><input id="f-u-phone" placeholder="WhatsApp (91...)"><select id="f-u-role"><option value="Pharmacist">Pharmacist</option><option value="Assistant">Assistant</option></select><button class="btn btn-primary" onclick="saveUser()">Create</button><button class="btn" onclick="closeModal('modal-user')">Cancel</button></div></div>
+<div id="app-root"></div>
 
-    <script>
-        const API_URL = "PASTE_YOUR_NEW_URL_HERE"; 
-        const STORAGE_KEY = "PHARMACY_V8_9_FINAL";
+<!-- Modals -->
+<div class="modal-overlay" id="modal-task">
+    <div class="modal">
+        <h2>Assign Task</h2>
+        <input id="f-t-title" placeholder="Task Detail">
+        <select id="f-t-user"></select>
+        <button class="btn btn-primary" style="width:100%" onclick="saveTask()">Add Task</button>
+        <button class="btn" style="width:100%;margin-top:10px" onclick="closeModal('modal-task')">Cancel</button>
+    </div>
+</div>
 
-        let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
-            tasks: [],
-            users: [{id: 'u1', name: 'Admin', email: 'admin@pharmacy.local', password: '123', phone: '', role: 'Admin'}],
-            masterTasks: [], recurringTasks: [], notifications: [], session: null, settings: { darkMode: false, sync: true, view: 'dashboard' }
-        };
+<div class="modal-overlay" id="modal-user">
+    <div class="modal">
+        <h2>Add New Staff</h2>
+        <input id="f-u-name" placeholder="Full Name">
+        <input id="f-u-email" placeholder="Email">
+        <input id="f-u-pass" type="password" placeholder="Password">
+        <input id="f-u-phone" placeholder="WhatsApp (e.g. 91987...)">
+        <button class="btn btn-primary" style="width:100%" onclick="saveUser()">Create Account</button>
+        <button class="btn" style="width:100%;margin-top:10px" onclick="closeModal('modal-user')">Cancel</button>
+    </div>
+</div>
 
-        const save = () => {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-            if(state.settings.sync && state.session) syncCloud();
-        };
+<script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxJ9m1ZlRoLOVo_LZl4khk85D0Fv0ZV2bFndUAoiZ_vma61KcA8F6iz6zOU9N9pO188/exec";
+    const STORAGE_KEY = "PHARMACY_V9_FINAL";
 
-        async function syncCloud() {
-            const payload = { action: 'syncDatabase', database: state };
-            try { await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }); } catch(e) { console.warn("Offline"); }
-        }
+    let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
+        tasks: [],
+        users: [{id: 'u1', name: 'Admin', email: 'admin@pharmacy.local', password: '123', phone: '', role: 'Admin', profileImg: ''}],
+        session: null,
+        settings: { darkMode: false, sync: true, view: 'dashboard', wallpaper: '' }
+    };
 
-        function init() { render(); }
-        function handleLogin() {
-            const email = document.getElementById('l-email').value;
-            const pass = document.getElementById('l-pass').value;
-            const user = state.users.find(u => u.email === email && u.password === pass);
-            if(user) { state.session = user; save(); render(); } else alert("Failed");
-        }
-        function logout() { state.session = null; save(); render(); }
-        function nav(v) { state.settings.view = v; save(); render(); }
+    const save = () => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        if(state.settings.sync && state.session) syncCloud();
+    };
 
-        function render() {
-            const root = document.getElementById('app-root');
-            if (!state.session) {
-                root.innerHTML = `<div class="login-screen"><div class="login-card"><h1>💊 Pharmacy Task</h1><input id="l-email" placeholder="Email" value="admin@pharmacy.local"><input id="l-pass" type="password" placeholder="Password" value="123"><button class="btn btn-primary" style="width:100%" onclick="handleLogin()">Login</button></div></div>`;
-                return;
-            }
-            document.body.className = state.settings.darkMode ? 'dark' : '';
+    async function syncCloud() {
+        try { await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'syncDatabase', database: state }) }); } catch(e) {}
+    }
+
+    function init() {
+        if(state.settings.wallpaper) document.body.style.backgroundImage = `url(${state.settings.wallpaper})`;
+        render();
+    }
+
+    // AUTH
+    function handleLogin() {
+        const e = document.getElementById('l-email').value;
+        const p = document.getElementById('l-pass').value;
+        const user = state.users.find(u => u.email === e && u.password === p);
+        if(user) { state.session = user; save(); render(); } else alert("Invalid Login");
+    }
+    function logout() { state.session = null; save(); render(); }
+    function nav(v) { state.settings.view = v; save(); render(); }
+
+    // RENDER ENGINE
+    function render() {
+        const root = document.getElementById('app-root');
+        if (!state.session) {
             root.innerHTML = `
-                <div class="app-container">
-                    <aside class="sidebar">
-                        <div class="sidebar-header">PHARMACY PRO</div>
-                        <nav class="nav-links">
-                            <div class="nav-item ${state.settings.view==='dashboard'?'active':''}" onclick="nav('dashboard')"><i class="fas fa-home"></i> Dashboard</div>
-                            <div class="nav-item ${state.settings.view==='tasks'?'active':''}" onclick="nav('tasks')"><i class="fas fa-tasks"></i> Tasks</div>
-                            <div class="nav-item ${state.settings.view==='staff'?'active':''}" onclick="nav('staff')"><i class="fas fa-users"></i> Staff</div>
-                            <div class="nav-item ${state.settings.view==='settings'?'active':''}" onclick="nav('settings')"><i class="fas fa-cog"></i> Settings</div>
-                        </nav>
-                        <div style="padding:20px"><button class="btn btn-danger" style="width:100%" onclick="logout()">LOGOUT</button></div>
-                    </aside>
-                    <main class="main-content">
-                        <header style="display:flex; justify-content:space-between; margin-bottom:20px">
-                            <h1>${state.settings.view.toUpperCase()}</h1>
-                            <button class="btn btn-primary" onclick="openTaskModal()">+ Task</button>
-                        </header>
-                        <div id="view-mount"></div>
-                    </main>
+                <div class="login-screen">
+                    <div class="login-card">
+                        <h1 style="color:var(--primary)">💊 Pharmacy Task</h1>
+                        <input id="l-email" placeholder="Email" value="admin@pharmacy.local">
+                        <input id="l-pass" type="password" placeholder="Password" value="123">
+                        <button class="btn btn-primary" style="width:100%" onclick="handleLogin()">Login</button>
+                    </div>
                 </div>`;
-            renderView();
+            return;
         }
 
-        function renderView() {
-            const mount = document.getElementById('view-mount');
-            const v = state.settings.view;
-            if (v === 'dashboard') {
-                mount.innerHTML = `
+        root.innerHTML = `
+            <div class="app-container">
+                <aside class="sidebar">
+                    <div style="padding:25px; text-align:center;">
+                        <img src="${state.session.profileImg || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}" class="profile-img">
+                        <div style="font-weight:bold">${state.session.name}</div>
+                    </div>
+                    <nav class="nav-links">
+                        <div class="nav-item ${state.settings.view==='dashboard'?'active':''}" onclick="nav('dashboard')"><i class="fas fa-chart-pie"></i> Dashboard</div>
+                        <div class="nav-item ${state.settings.view==='tasks'?'active':''}" onclick="nav('tasks')"><i class="fas fa-list"></i> Tasks</div>
+                        <div class="nav-item ${state.settings.view==='staff'?'active':''}" onclick="nav('staff')"><i class="fas fa-users"></i> Staff</div>
+                        <div class="nav-item ${state.settings.view==='settings'?'active':''}" onclick="nav('settings')"><i class="fas fa-cog"></i> Settings</div>
+                    </nav>
+                    <div style="padding:20px"><button class="btn btn-danger" style="width:100%" onclick="logout()">Logout</button></div>
+                </aside>
+                <main class="main-content">
+                    <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
+                        <h1>${state.settings.view.toUpperCase()}</h1>
+                        <div>
+                            <button class="btn btn-primary" onclick="downloadReport()"><i class="fas fa-file-excel"></i> Export</button>
+                            <button class="btn btn-primary" onclick="openTaskModal()">+ New Task</button>
+                        </div>
+                    </header>
+                    <div id="view-mount"></div>
+                </main>
+            </div>`;
+        renderView();
+    }
+
+    function renderView() {
+        const mount = document.getElementById('view-mount');
+        const v = state.settings.view;
+        if(v === 'dashboard') {
+            mount.innerHTML = `
                 <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px">
                     <div class="panel"><span>Pending</span><h2>${state.tasks.filter(t=>t.status!=='DONE').length}</h2></div>
                     <div class="panel"><span>Staff</span><h2>${state.users.length}</h2></div>
-                    <div class="panel"><span>Sync</span><p>${state.settings.sync?'ON':'OFF'}</p></div>
+                    <div class="panel"><span>Excel Upload</span><br><input type="file" id="excel-up" style="font-size:0.7rem" onchange="uploadExcel(event)"></div>
                 </div>
-                <div class="panel"><h3>Auto WhatsApp Notification</h3><p>If a task is incomplete, click the green icon in Task List.</p></div>`;
-            } else if (v === 'tasks') {
-                mount.innerHTML = `<div class="panel"><table><thead><tr><th>Task</th><th>Staff</th><th>Action</th></tr></thead><tbody>
-                    ${state.tasks.map(t => `<tr><td>${t.title}</td><td>${state.users.find(u=>u.id===t.userId)?.name || '-'}</td>
-                    <td><button onclick="toggleDone('${t.id}')">${t.status==='DONE'?'✅':'⭕'}</button>
-                    ${t.status!=='DONE' && state.users.find(u=>u.id===t.userId)?.phone ? `<button class="btn-whatsapp" onclick="wa('${state.users.find(u=>u.id===t.userId).phone}', '${t.title}')"><i class="fab fa-whatsapp"></i></button>` : ''}</td></tr>`).join('')}
-                </tbody></table></div>`;
-            } else if (v === 'staff') {
-                mount.innerHTML = `<button class="btn btn-primary" onclick="document.getElementById('modal-user').classList.add('active')">+ Add Staff</button>
-                <div class="panel"><table><thead><tr><th>Name</th><th>Role</th><th>WhatsApp</th></tr></thead><tbody>
-                    ${state.users.map(u => `<tr><td>${u.name}</td><td>${u.role}</td><td>${u.phone||'-'}</td></tr>`).join('')}
-                </tbody></table></div>`;
-            } else if (v === 'settings') {
-                mount.innerHTML = `<div class="panel"><button onclick="state.settings.darkMode=!state.settings.darkMode;save();render();">Toggle Dark Mode</button><br><br>
-                <button class="btn btn-danger" onclick="localStorage.clear();location.reload();">Reset System</button></div>`;
-            }
+                <div class="panel"><h3>Auto WhatsApp Reminder</h3><p>Manage your pharmacy tasks and notify staff instantly via WhatsApp.</p></div>`;
+        } else if(v === 'tasks') {
+            mount.innerHTML = `
+                <div class="panel">
+                    <table>
+                        <thead><tr><th>Task Name</th><th>Assigned Staff</th><th>Action</th></tr></thead>
+                        <tbody>${state.tasks.map(t => `
+                            <tr>
+                                <td>${t.title}</td>
+                                <td>${state.users.find(u=>u.id===t.userId)?.name || 'Unassigned'}</td>
+                                <td>
+                                    <button class="btn" onclick="toggleDone('${t.id}')">${t.status==='DONE'?'✅':'⭕'}</button>
+                                    ${t.status!=='DONE' && state.users.find(u=>u.id===t.userId)?.phone ? 
+                                    `<button class="btn btn-whatsapp" onclick="wa('${state.users.find(u=>u.id===t.userId).phone}', '${t.title}')"><i class="fab fa-whatsapp"></i></button>` : ''}
+                                </td>
+                            </tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>`;
+        } else if(v === 'staff') {
+            mount.innerHTML = `
+                <button class="btn btn-primary" style="margin-bottom:15px" onclick="document.getElementById('modal-user').classList.add('active')">+ Add Staff</button>
+                <div class="panel">
+                    <table><thead><tr><th>Name</th><th>Email</th><th>WhatsApp</th></tr></thead>
+                    <tbody>${state.users.map(u => `<tr><td>${u.name}</td><td>${u.email}</td><td>${u.phone || '-'}</td></tr>`).join('')}</tbody></table>
+                </div>`;
+        } else if(v === 'settings') {
+            mount.innerHTML = `
+                <div class="panel" style="max-width:500px">
+                    <h3>Profile & Security</h3>
+                    <label>New Password</label><input type="password" id="new-pw" placeholder="Enter new password">
+                    <button class="btn btn-primary" onclick="changePw()">Update Password</button>
+                    <hr>
+                    <h3>Appearance</h3>
+                    <label>Profile Image URL</label><input id="p-img" placeholder="https://..." value="${state.session.profileImg}">
+                    <label>Wallpaper URL</label><input id="w-img" placeholder="https://..." value="${state.settings.wallpaper}">
+                    <button class="btn btn-primary" onclick="updateStyle()">Save Customization</button>
+                </div>`;
         }
+    }
 
-        function openTaskModal() {
-            document.getElementById('f-t-user').innerHTML = state.users.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
-            document.getElementById('modal-task').classList.add('active');
-        }
-        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-        function saveTask() {
-            state.tasks.unshift({id:'t'+Date.now(), title:document.getElementById('f-t-title').value, userId:document.getElementById('f-t-user').value, status:'TODO'});
-            save(); closeModal('modal-task'); render();
-        }
-        function saveUser() {
-            state.users.push({id:'u'+Date.now(), name:document.getElementById('f-u-name').value, email:document.getElementById('f-u-email').value, password:document.getElementById('f-u-pass').value, phone:document.getElementById('f-u-phone').value, role:document.getElementById('f-u-role').value});
-            save(); closeModal('modal-user'); render();
-        }
-        function toggleDone(id) { const t=state.tasks.find(x=>x.id===id); if(t) t.status=t.status==='DONE'?'TODO':'DONE'; save(); render(); }
-        function wa(p, t) { window.open(`https://wa.me/${p.replace(/\D/g,'')}?text=${encodeURIComponent('Reminder: Task "'+t+'" is pending.')}`, '_blank'); }
-    </script>
+    // FUNCTIONS
+    function openTaskModal() {
+        document.getElementById('f-t-user').innerHTML = state.users.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+        document.getElementById('modal-task').classList.add('active');
+    }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    function saveTask() {
+        const title = document.getElementById('f-t-title').value;
+        const uid = document.getElementById('f-t-user').value;
+        if(!title) return;
+        state.tasks.unshift({id:'t'+Date.now(), title, userId: uid, status:'TODO'});
+        save(); closeModal('modal-task'); render();
+    }
+
+    function saveUser() {
+        const u = {
+            id:'u'+Date.now(), 
+            name: document.getElementById('f-u-name').value,
+            email: document.getElementById('f-u-email').value,
+            password: document.getElementById('f-u-pass').value,
+            phone: document.getElementById('f-u-phone').value,
+            profileImg: ''
+        };
+        state.users.push(u);
+        save(); closeModal('modal-user'); render();
+    }
+
+    function toggleDone(id) {
+        const t = state.tasks.find(x => x.id === id);
+        if(t) t.status = t.status === 'DONE' ? 'TODO' : 'DONE';
+        save(); render();
+    }
+
+    function changePw() {
+        const np = document.getElementById('new-pw').value;
+        if(!np) return;
+        const uIdx = state.users.findIndex(u => u.id === state.session.id);
+        state.users[uIdx].password = np;
+        state.session.password = np;
+        save(); alert("Password Updated!");
+    }
+
+    function updateStyle() {
+        state.session.profileImg = document.getElementById('p-img').value;
+        state.settings.wallpaper = document.getElementById('w-img').value;
+        const uIdx = state.users.findIndex(u => u.id === state.session.id);
+        state.users[uIdx].profileImg = state.session.profileImg;
+        save(); location.reload();
+    }
+
+    function downloadReport() {
+        const data = state.tasks.map(t => ({
+            Task: t.title,
+            Staff: state.users.find(u => u.id === t.userId)?.name || 'Unknown',
+            Status: t.status
+        }));
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Pharmacy Report");
+        XLSX.writeFile(wb, "Pharmacy_Tasks_Report.xlsx");
+    }
+
+    function uploadExcel(event) {
+        const file = event.target.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = XLSX.read(e.target.result, {type: 'binary'});
+            const sheet = data.Sheets[data.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet);
+            rows.forEach(r => {
+                const staff = state.users.find(u => u.email === r.StaffEmail);
+                state.tasks.unshift({
+                    id: 't' + Date.now() + Math.random(),
+                    title: r.TaskName,
+                    userId: staff ? staff.id : 'u1',
+                    status: 'TODO'
+                });
+            });
+            save(); render();
+            alert("Tasks Uploaded Successfully!");
+        };
+        reader.readAsBinaryString(file);
+    }
+
+    function wa(p, t) { window.open(`https://wa.me/${p.replace(/\D/g,'')}?text=${encodeURIComponent('Hello, task reminder: "'+t+'" is pending.')}`, '_blank'); }
+</script>
 </body>
 </html>
