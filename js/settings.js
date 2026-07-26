@@ -1,94 +1,141 @@
-// ==============================
-// Sidebar Navigation - V7
-// ==============================
+// ==========================================
+// SETTINGS & SYSTEM CONTROL - V8.2 PRO
+// ==========================================
 
-function showDashboard() {
-
-    currentPage = "dashboard";
-
-    renderApp();
-
-}
-
-function showMasterTasks() {
-
-    currentPage = "master";
-
-    openMasterTasks();
-
-}
-
-function showDailyTasks() {
-
-    currentPage = "daily";
-
-    if (typeof openDailyTasks === "function") {
-        openDailyTasks();
-    } else {
-        document.querySelector(".content").innerHTML = `
-            <section class="panel">
-                <h2>📅 Daily Tasks</h2>
-                <p class="muted">Daily task module is under development.</p>
-            </section>
-        `;
+/**
+ * 1. Professional Navigation Controller
+ * Handles view switching and UI state
+ */
+function navigateTo(viewName) {
+    // Update State
+    state.view = viewName;
+    
+    // Auto-run background engines when navigating to dashboard
+    if (viewName === 'dashboard') {
+        if (typeof scanForIncompleteTasks === 'function') scanForIncompleteTasks();
+        if (typeof runRecurringEngine === 'function') runRecurringEngine();
     }
 
+    // Save state to remember current view on refresh
+    save(); 
+    
+    // Re-render the entire app
+    render(); 
+    
+    console.log(`System: Switched to ${viewName} view.`);
 }
 
-function showWeeklyTasks() {
+/**
+ * 2. Theme Management
+ * Handles Dark/Light mode persistence
+ */
+function toggleTheme() {
+    state.settings.darkMode = !state.settings.darkMode;
+    
+    // Apply class to body for CSS variables
+    document.body.classList.toggle('dark', state.settings.darkMode);
+    
+    save();
+    toast(`Theme: ${state.settings.darkMode ? 'Dark' : 'Light'} Mode enabled`);
+}
 
-    currentPage = "weekly";
-
-    if (typeof openWeeklyTasks === "function") {
-        openWeeklyTasks();
-    } else {
-        document.querySelector(".content").innerHTML = `
-            <section class="panel">
-                <h2>📆 Weekly Tasks</h2>
-                <p class="muted">Weekly task module is under development.</p>
-            </section>
-        `;
+/**
+ * 3. Cloud Sync Management
+ * Connects Local Data to Google Sheets API
+ */
+async function triggerCloudSync() {
+    if (!state.settings.sync) {
+        toast("Sync is disabled in settings.");
+        return;
     }
 
-}
+    toast("☁️ Syncing with Google Sheets...");
+    
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'syncDatabase',
+                database: state
+            })
+        });
 
-function showMonthlyTasks() {
-
-    currentPage = "monthly";
-
-    if (typeof openMonthlyTasks === "function") {
-        openMonthlyTasks();
-    } else {
-        document.querySelector(".content").innerHTML = `
-            <section class="panel">
-                <h2>🗓 Monthly Tasks</h2>
-                <p class="muted">Monthly task module is under development.</p>
-            </section>
-        `;
+        const result = await response.json();
+        
+        if (result.success) {
+            toast("✅ Sync Complete");
+            console.log("Cloud API:", result.message);
+        } else {
+            throw new Error(result.message);
+        }
+    } catch (error) {
+        console.error("Sync Error:", error);
+        toast("❌ Sync Failed: Check API URL");
     }
-
 }
 
-function showEmployees() {
+/**
+ * 4. Data Export Engine (Excel)
+ * Requires SheetJS (xlsx.full.min.js)
+ */
+function exportSystemData() {
+    try {
+        // Prepare Data for Export
+        const taskData = state.tasks.map(t => ({
+            Title: t.title,
+            Priority: t.priority,
+            Status: t.status,
+            DueDate: t.date || 'N/A',
+            Assignee: (state.employees.find(e => e.id === t.assignedTo) || {}).name || 'Unassigned',
+            Created: t.createdAt || 'N/A'
+        }));
 
-    currentPage = "employees";
+        const ws = XLSX.utils.json_to_sheet(taskData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Task Report");
 
-    renderEmployees();
-
+        // Download File
+        const fileName = `Amba_V8_Report_${new Date().toISOString().slice(0,10)}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+        
+        toast("📊 Excel Report Downloaded");
+    } catch (err) {
+        toast("❌ Export Failed");
+        console.error(err);
+    }
 }
 
-function showReports() {
-
-    currentPage = "reports";
-
-    generateReport();
-
+/**
+ * 5. Security & Session
+ */
+function logoutUser() {
+    if (confirm("Are you sure you want to logout? This will clear your current local session.")) {
+        // Clear local storage but keep Google Sheets safe
+        localStorage.removeItem(STORAGE_KEY);
+        sessionStorage.clear();
+        location.reload(); // Returns to login screen
+    }
 }
 
-function showSettings() {
+function factoryReset() {
+    const confirmation = prompt("Type 'RESET' to delete all local data, tasks, and employees. This cannot be undone.");
+    if (confirmation === 'RESET') {
+        localStorage.clear();
+        location.reload();
+    }
+}
 
-    currentPage = "settings";
-
-    openSettings();
-
+/**
+ * 6. Toast Notification Helper
+ */
+function toast(msg) {
+    const t = document.getElementById('toast');
+    if (!t) return;
+    
+    t.textContent = msg;
+    t.style.display = 'block';
+    
+    setTimeout(() => {
+        t.style.display = 'none';
+    }, 3000);
 }
