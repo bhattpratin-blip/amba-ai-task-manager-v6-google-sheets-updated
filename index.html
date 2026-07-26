@@ -3,235 +3,246 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Amba AI Task Manager V8.2 | Pro All-In-One</title>
-    <!-- Libraries -->
+    <title>Amba AI Task Manager V8.2 Pro</title>
+    <!-- External Dependencies -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <style>
         :root {
-            --primary: #4f46e5; --bg: #f8fafc; --card: #ffffff; --text: #0f172a;
+            --primary: #4f46e5; --primary-hover: #4338ca;
+            --bg: #f8fafc; --card: #ffffff; --text: #0f172a;
             --muted: #64748b; --line: #e2e8f0; --sidebar: #1e293b;
             --danger: #ef4444; --success: #10b981; --warning: #f59e0b;
+            --shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
         }
         body.dark {
             --bg: #0f172a; --card: #1e293b; --text: #f1f5f9; --line: #334155; --sidebar: #020617;
         }
-        * { box-sizing: border-box; font-family: 'Inter', sans-serif; transition: 0.2s; }
-        body { margin: 0; background: var(--bg); color: var(--text); overflow: hidden; }
+        * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { margin: 0; background: var(--bg); color: var(--text); overflow: hidden; transition: 0.3s; }
 
-        /* Sidebar & Layout */
+        /* Layout Structure */
         .app-container { display: flex; height: 100vh; width: 100vw; }
         .sidebar { width: 260px; background: var(--sidebar); color: white; display: flex; flex-direction: column; flex-shrink: 0; }
         .sidebar-header { padding: 25px; text-align: center; font-size: 1.3rem; font-weight: 800; border-bottom: 1px solid #334155; }
         .sidebar-header span { color: var(--primary); }
         .nav-links { flex: 1; padding: 20px 15px; overflow-y: auto; }
-        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #94a3b8; text-decoration: none; border-radius: 8px; margin-bottom: 5px; cursor: pointer; font-size: 0.9rem; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #94a3b8; text-decoration: none; border-radius: 8px; margin-bottom: 5px; cursor: pointer; font-size: 0.9rem; transition: 0.2s; }
         .nav-item:hover, .nav-item.active { background: var(--primary); color: white; }
         .sidebar-footer { padding: 15px; border-top: 1px solid #334155; }
-        .logout-btn { width: 100%; padding: 12px; background: var(--danger); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .logout-btn { background: #dc2626; color: white; width: 100%; border-radius: 8px; padding: 12px; border: none; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; }
 
         /* Main Content */
-        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; position: relative; }
         .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
 
-        /* Notifications */
+        /* Notifications Dropdown */
         .top-right { display: flex; align-items: center; gap: 20px; }
         .notif-bell { position: relative; cursor: pointer; font-size: 1.3rem; color: var(--muted); }
-        .notif-badge { position: absolute; top: -5px; right: -5px; background: var(--danger); color: white; font-size: 0.6rem; padding: 2px 5px; border-radius: 10px; border: 2px solid var(--bg); }
-        .notif-pane { display: none; position: absolute; top: 70px; right: 30px; width: 320px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 10px 15px rgba(0,0,0,0.1); z-index: 1000; }
+        .notif-badge { position: absolute; top: -5px; right: -5px; background: var(--danger); color: white; font-size: 0.65rem; padding: 2px 5px; border-radius: 10px; border: 2px solid var(--bg); }
+        .notif-pane { display: none; position: absolute; top: 70px; right: 30px; width: 320px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); z-index: 1000; }
         .notif-pane.active { display: block; }
-        .notif-item { padding: 12px; border-bottom: 1px solid var(--line); font-size: 0.8rem; line-height: 1.4; }
-        .notif-item.overdue { border-left: 4px solid var(--danger); background: rgba(239, 68, 68, 0.05); color: var(--danger); }
+        .notif-item { padding: 12px 15px; border-bottom: 1px solid var(--line); font-size: 0.85rem; cursor: pointer; }
+        .notif-item.unread { border-left: 3px solid var(--primary); background: rgba(79, 70, 229, 0.05); }
+        .notif-item.notif-overdue { border-left: 3px solid var(--danger); background: rgba(239, 68, 68, 0.05); }
 
-        /* Widgets */
+        /* Components */
+        .panel { background: var(--card); border-radius: 16px; border: 1px solid var(--line); padding: 20px; box-shadow: var(--shadow); margin-bottom: 25px; }
         .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 25px; }
-        .stat-card { background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid var(--line); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .stat-card span { font-size: 0.7rem; color: var(--muted); font-weight: 700; text-transform: uppercase; }
+        .stat-card { background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid var(--line); }
+        .stat-card span { font-size: 0.7rem; font-weight: 800; color: var(--muted); text-transform: uppercase; }
         .stat-card h2 { margin: 5px 0 0; font-size: 1.6rem; }
 
-        .panel { background: var(--card); border-radius: 16px; border: 1px solid var(--line); padding: 20px; margin-bottom: 25px; }
-        
-        /* Tables */
+        /* Tables & Lists */
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; color: var(--muted); font-size: 0.8rem; padding: 10px; border-bottom: 2px solid var(--line); }
         td { padding: 12px 10px; border-bottom: 1px solid var(--line); font-size: 0.9rem; }
-
-        /* Badge Colors */
         .badge { padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; }
         .bg-high { background: #fee2e2; color: #b91c1c; }
         .bg-med { background: #fef3c7; color: #b45309; }
         .bg-done { background: #dcfce7; color: #15803d; }
 
-        /* Employee Cards */
-        .emp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; }
-        .emp-card { background: var(--card); border: 1px solid var(--line); padding: 20px; border-radius: 16px; text-align: center; }
-        .emp-card h3 { margin: 10px 0 5px; }
-        .emp-card p { color: var(--muted); font-size: 0.8rem; }
-
         /* Modals */
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; place-items: center; }
         .modal-overlay.active { display: grid; }
-        .modal { background: var(--card); padding: 30px; border-radius: 20px; width: 400px; }
-        .modal input, .modal select { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+        .modal { background: var(--card); padding: 30px; border-radius: 20px; width: 450px; box-shadow: var(--shadow); }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 5px; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
 
-        .btn { padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; border: none; transition: 0.2s; }
+        .btn { padding: 10px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 8px; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-danger { background: var(--danger); color: white; }
-        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
 
-        /* AI Chat Box */
-        .ai-box { display: flex; flex-direction: column; height: 350px; border: 1px solid var(--line); border-radius: 12px; }
-        .ai-msgs { flex: 1; overflow-y: auto; padding: 15px; font-size: 0.85rem; }
-        .ai-input { display: flex; gap: 10px; padding: 10px; border-top: 1px solid var(--line); }
-        .ai-input input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+        /* AI Chat */
+        .ai-chat-box { display: flex; flex-direction: column; height: 350px; border: 1px solid var(--line); border-radius: 12px; }
+        .chat-history { flex: 1; overflow-y: auto; padding: 15px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 10px; }
+        .msg-bot { background: var(--bg); padding: 10px; border-radius: 10px; align-self: flex-start; }
+        .msg-user { background: var(--primary); color: white; padding: 10px; border-radius: 10px; align-self: flex-end; }
 
+        #toast { display: none; position: fixed; bottom: 20px; right: 20px; background: #1e293b; color: white; padding: 12px 20px; border-radius: 10px; z-index: 3000; box-shadow: var(--shadow); }
     </style>
 </head>
 <body onload="init()">
 
 <div id="app-root"></div>
+<div id="toast"></div>
 
-<!-- Create Task Modal -->
+<!-- Task Modal -->
 <div class="modal-overlay" id="task-modal">
     <div class="modal">
-        <h2>New Task</h2>
-        <input type="text" id="f-title" placeholder="Task description...">
-        <input type="date" id="f-date">
-        <select id="f-emp"></select> <!-- Populated by JS -->
-        <select id="f-pri">
-            <option value="HIGH">High Priority</option>
-            <option value="MEDIUM" selected>Medium Priority</option>
-            <option value="LOW">Low Priority</option>
-        </select>
-        <button class="btn btn-primary" onclick="addTask()" style="width:100%">Save Task</button>
-        <button onclick="closeModal('task-modal')" style="width:100%; background:none; border:none; margin-top:10px; color:var(--muted); cursor:pointer;">Cancel</button>
+        <h2 id="task-modal-title">New Task</h2>
+        <div class="form-group"><label>Title</label><input type="text" id="f-title"></div>
+        <div class="form-group"><label>Assigned To</label><select id="f-emp"></select></div>
+        <div class="form-group"><label>Due Date</label><input type="date" id="f-date"></div>
+        <div class="form-group"><label>Priority</label>
+            <select id="f-pri">
+                <option value="HIGH">High</option>
+                <option value="MEDIUM" selected>Medium</option>
+                <option value="LOW">Low</option>
+            </select>
+        </div>
+        <button class="btn btn-primary" onclick="saveTask()" style="width:100%">Save Task</button>
+        <button onclick="closeModal('task-modal')" style="width:100%; border:none; background:none; margin-top:10px; cursor:pointer; color:var(--muted)">Cancel</button>
     </div>
 </div>
 
-<!-- Create Employee Modal -->
-<div class="modal-overlay" id="emp-modal">
+<!-- Master Template Modal -->
+<div class="modal-overlay" id="master-modal">
     <div class="modal">
-        <h2>Add Team Member</h2>
-        <input type="text" id="fe-name" placeholder="Full Name">
-        <input type="text" id="fe-role" placeholder="Role (e.g. Developer)">
-        <button class="btn btn-primary" onclick="addEmployee()" style="width:100%">Add Member</button>
-        <button onclick="closeModal('emp-modal')" style="width:100%; background:none; border:none; margin-top:10px; color:var(--muted); cursor:pointer;">Cancel</button>
+        <h2>Create Master Template</h2>
+        <div class="form-group"><label>Name</label><input type="text" id="mt-title"></div>
+        <div class="form-group"><label>Priority</label>
+            <select id="mt-priority"><option value="HIGH">High</option><option value="MEDIUM" selected>Medium</option><option value="LOW">Low</option></select>
+        </div>
+        <div class="form-group"><label>Checklist (Comma separated)</label><input type="text" id="mt-steps" placeholder="Step 1, Step 2..."></div>
+        <button class="btn btn-primary" onclick="saveMasterTemplate()" style="width:100%">Save to Library</button>
+        <button onclick="closeModal('master-modal')" style="width:100%; border:none; background:none; margin-top:10px; cursor:pointer; color:var(--muted)">Cancel</button>
     </div>
 </div>
 
 <script>
 // ==========================================
-// 1. DATA STATE
+// 1. GLOBAL STATE & CONFIG
 // ==========================================
-const API_URL = "YOUR_GOOGLE_SCRIPT_URL_HERE"; 
-const STORAGE_KEY = "AMBA_V8_2_FINAL";
+const API_URL = "https://script.google.com/macros/s/AKfycbxJ9m1ZlRoLOVo_LZl4khk85D0Fv0ZV2bFndUAoiZ_vma61KcA8F6iz6zOU9N9pO188/exec";
+const STORAGE_KEY = "AMBA_V8_2_ULTIMATE";
 
 let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
     tasks: [],
-    employees: [{id: 'e1', name: 'Default Admin', role: 'Manager'}],
-    masterTasks: [{id: 'm1', title: 'Server Health Check', priority: 'HIGH'}],
-    notifications: [],
+    employees: [{id: 'e1', name: 'Admin User', role: 'Manager'}],
+    masterTasks: [{id: 'm1', title: 'Weekly Server Update', priority: 'HIGH', steps: ['Backup','Update','Test'], usage: 0}],
     recurring: [],
-    settings: { userName: "Admin", darkMode: false, sync: false },
-    view: 'dashboard'
+    notifications: [],
+    settings: { userName: "Admin", darkMode: false, sync: true, view: 'dashboard' }
 };
 
+let syncTimer;
 const save = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    if(state.settings.sync) syncToSheets();
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(() => { if(state.settings.sync) syncCloud(); }, 5000);
 };
 
-async function syncToSheets() {
+async function syncCloud() {
     try { await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'syncDatabase', database: state }) }); } catch(e) {}
 }
 
 // ==========================================
-// 2. AUTO-ENGINES (RECURRING & OVERDUE)
+// 2. AUTOMATION ENGINES (NOTIFICATIONS & RECURRING)
 // ==========================================
-function runAutomationCheck() {
+function runEngines() {
     const today = new Date();
     today.setHours(0,0,0,0);
     const todayStr = today.toDateString();
-    let updated = false;
+    let change = false;
 
-    // A. Check Recurring Tasks
+    // A. Recuring Engine
     state.recurring.forEach(r => {
-        if(r.lastRun !== todayStr) {
+        if (r.lastRun !== todayStr) {
             state.tasks.unshift({ id: 'rt'+Date.now(), title: "[AUTO] "+r.title, assignedTo: 'e1', priority: 'MEDIUM', status: 'TODO', date: new Date().toISOString().split('T')[0] });
-            state.notifications.unshift({ text: "🔄 Recurring task generated: "+r.title, type: 'info', read: false });
+            pushNotif(`📅 Automated Task Created: ${r.title}`, 'info');
             r.lastRun = todayStr;
-            updated = true;
+            change = true;
         }
     });
 
-    // B. Check Incomplete (Overdue) Tasks
+    // B. Overdue Scanner
     state.tasks.forEach(t => {
-        if(t.status !== 'DONE' && t.date) {
+        if (t.status !== 'DONE' && t.date) {
             const dueDate = new Date(t.date);
-            if(dueDate < today && t.lastAlerted !== todayStr) {
-                state.notifications.unshift({
-                    text: `⚠️ OVERDUE: "${t.title}" is incomplete! Due date was ${t.date}`,
-                    type: 'overdue',
-                    read: false
-                });
+            if (dueDate < today && t.lastAlerted !== todayStr) {
+                pushNotif(`⚠️ INCOMPLETE: "${t.title}" is overdue!`, 'danger', t.id);
                 t.lastAlerted = todayStr;
-                updated = true;
+                change = true;
             }
         }
     });
 
-    if(updated) { save(); render(); }
+    if(change) { save(); render(); }
+}
+
+function pushNotif(text, type, taskId = null) {
+    state.notifications.unshift({ id: 'n'+Date.now(), text, type, taskId, read: false, time: new Date().toISOString() });
+    if(state.notifications.length > 30) state.notifications.pop();
 }
 
 // ==========================================
-// 3. UI RENDERING
+// 3. UI CONTROLLER (SETTINGS & NAV)
 // ==========================================
 function init() {
-    runAutomationCheck();
+    document.body.classList.toggle('dark', state.settings.darkMode);
+    runEngines();
     render();
+}
+
+function navigateTo(v) { 
+    state.settings.view = v; 
+    if(v==='dashboard') runEngines();
+    save(); render(); 
 }
 
 function render() {
     const root = document.getElementById('app-root');
-    document.body.className = state.settings.darkMode ? 'dark' : '';
-    const unreadCount = state.notifications.filter(n => !n.read).length;
+    const unread = state.notifications.filter(n => !n.read).length;
 
     root.innerHTML = `
         <div class="app-container">
             <aside class="sidebar">
-                <div class="sidebar-header">AMBA <span>AI</span> V8.2</div>
+                <div class="sidebar-header">AMBA <span>AI</span> Pro</div>
                 <nav class="nav-links">
-                    <div class="nav-item ${state.view==='dashboard'?'active':''}" onclick="nav('dashboard')"><i class="fas fa-th-large"></i> <span>Dashboard</span></div>
-                    <div class="nav-item ${state.view==='tasks'?'active':''}" onclick="nav('tasks')"><i class="fas fa-list-ul"></i> <span>Task List</span></div>
-                    <div class="nav-item ${state.view==='team'?'active':''}" onclick="nav('team')"><i class="fas fa-users"></i> <span>Team Members</span></div>
-                    <div class="nav-item ${state.view==='master'?'active':''}" onclick="nav('master')"><i class="fas fa-copy"></i> <span>Templates</span></div>
-                    <div class="nav-item ${state.view==='settings'?'active':''}" onclick="nav('settings')"><i class="fas fa-sliders-h"></i> <span>Settings</span></div>
+                    <div class="nav-item ${state.settings.view==='dashboard'?'active':''}" onclick="navigateTo('dashboard')"><i class="fas fa-th-large"></i> <span>Dashboard</span></div>
+                    <div class="nav-item ${state.settings.view==='tasks'?'active':''}" onclick="navigateTo('tasks')"><i class="fas fa-list-check"></i> <span>Tasks</span></div>
+                    <div class="nav-item ${state.settings.view==='team'?'active':''}" onclick="navigateTo('team')"><i class="fas fa-users"></i> <span>Employees</span></div>
+                    <div class="nav-item ${state.settings.view==='master'?'active':''}" onclick="navigateTo('master')"><i class="fas fa-copy"></i> <span>Templates</span></div>
+                    <div class="nav-item ${state.settings.view==='settings'?'active':''}" onclick="navigateTo('settings')"><i class="fas fa-cog"></i> <span>Settings</span></div>
                 </nav>
-                <div class="sidebar-footer">
-                    <button class="logout-btn" onclick="logout()">
-                        <i class="fas fa-sign-out-alt"></i> LOGOUT
-                    </button>
-                </div>
+                <div class="sidebar-footer"><button class="logout-btn" onclick="logout()"><i class="fas fa-power-off"></i> <b>Logout</b></button></div>
             </aside>
 
             <main class="main-content">
                 <header class="top-bar">
-                    <h1>${state.view.toUpperCase()}</h1>
+                    <h1>${state.settings.view.toUpperCase()}</h1>
                     <div class="top-right">
                         <div class="notif-bell" onclick="toggleNotifs()">
                             <i class="fas fa-bell"></i>
-                            ${unreadCount > 0 ? `<span class="notif-badge">${unreadCount}</span>` : ''}
+                            ${unread > 0 ? `<span class="notif-badge">${unread}</span>` : ''}
                         </div>
                         <div class="notif-pane" id="notif-box">
                             <div style="padding:15px; border-bottom:1px solid var(--line); font-weight:800; display:flex; justify-content:space-between;">
-                                Notifications <span onclick="clearNotifs()" style="color:var(--primary); cursor:pointer; font-size:0.7rem;">Clear All</span>
+                                Alerts <span onclick="clearNotifs()" style="color:var(--primary); cursor:pointer; font-size:0.7rem;">Clear</span>
                             </div>
-                            <div style="max-height:300px; overflow-y:auto;">
-                                ${state.notifications.length ? state.notifications.map(n => `<div class="notif-item ${n.type==='overdue'?'overdue':''}">${n.text}</div>`).join('') : '<div class="notif-item">No alerts</div>'}
+                            <div id="notif-list" style="max-height:300px; overflow-y:auto;">
+                                ${state.notifications.map(n => `
+                                    <div class="notif-item ${n.read?'':'unread'} ${n.type==='danger'?'notif-overdue':''}" onclick="markRead('${n.id}')">
+                                        <b>${n.text}</b><br><small>${new Date(n.time).toLocaleTimeString()}</small>
+                                    </div>
+                                `).join('') || '<div class="notif-item">No alerts</div>'}
                             </div>
                         </div>
-                        <button class="btn btn-primary" onclick="showTaskModal()">+ New Task</button>
+                        <button class="btn btn-primary" onclick="openTaskModal()">+ New Task</button>
                     </div>
                 </header>
                 <div id="view-mount"></div>
@@ -241,63 +252,65 @@ function render() {
     renderView();
 }
 
-function nav(v) { state.view = v; render(); }
-
-// ==========================================
-// 4. VIEWS
-// ==========================================
 function renderView() {
     const mount = document.getElementById('view-mount');
-    
-    if (state.view === 'dashboard') {
+    const v = state.settings.view;
+
+    if (v === 'dashboard') {
+        const pending = state.tasks.filter(t=>t.status!=='DONE').length;
+        const overdue = state.tasks.filter(t=>t.status!=='DONE' && new Date(t.date) < new Date().setHours(0,0,0,0)).length;
         mount.innerHTML = `
             <div class="stats-grid">
-                <div class="stat-card"><span>Active Tasks</span><h2>${state.tasks.filter(t=>t.status!=='DONE').length}</h2></div>
-                <div class="stat-card"><span>Overdue</span><h2 style="color:var(--danger)">${state.tasks.filter(t=>t.status!=='DONE' && new Date(t.date) < new Date().setHours(0,0,0,0)).length}</h2></div>
-                <div class="stat-card"><span>Team Size</span><h2>${state.employees.length}</h2></div>
+                <div class="stat-card"><span>Active Tasks</span><h2>${pending}</h2></div>
+                <div class="stat-card"><span>Overdue</span><h2 style="color:var(--danger)">${overdue}</h2></div>
+                <div class="stat-card"><span>Completed</span><h2>${state.tasks.filter(t=>t.status==='DONE').length}</h2></div>
                 <div class="stat-card"><span>Efficiency</span><h2>${state.tasks.length ? Math.round((state.tasks.filter(t=>t.status==='DONE').length/state.tasks.length)*100) : 0}%</h2></div>
             </div>
             <div style="display:grid; grid-template-columns: 1fr 380px; gap:25px;">
                 <div class="panel">
-                    <h3>Recent Tasks</h3>
+                    <h3>Priority Queue</h3>
                     <table>
-                        ${state.tasks.slice(0, 8).map(t => {
-                            const emp = state.employees.find(e => e.id === t.assignedTo);
-                            return `<tr>
+                        ${state.tasks.filter(t=>t.status!=='DONE').slice(0,6).map(t => `
+                            <tr>
                                 <td>${t.title}</td>
-                                <td><b>${emp ? emp.name : 'Unknown'}</b></td>
                                 <td><span class="badge ${t.priority==='HIGH'?'bg-high':'bg-med'}">${t.priority}</span></td>
-                            </tr>`;
-                        }).join('') || '<tr><td>No data available.</td></tr>'}
+                                <td><button class="btn btn-primary" style="padding:5px 10px" onclick="toggleDone('${t.id}')">Done</button></td>
+                            </tr>
+                        `).join('') || '<tr><td>No active tasks.</td></tr>'}
                     </table>
                 </div>
                 <div class="panel">
-                    <h3>🤖 AI Copilot</h3>
-                    <div class="ai-box">
-                        <div class="ai-msgs" id="ai-chat">Type: "Add task Build Website"</div>
-                        <div class="ai-input">
-                            <input type="text" id="ai-text" placeholder="Natural language command..." onkeypress="if(event.key==='Enter') runAI()">
-                            <button class="btn-primary btn" onclick="runAI()">➔</button>
+                    <h3>🤖 AI Assistant</h3>
+                    <div class="ai-chat-box">
+                        <div class="chat-history" id="ai-chat">
+                            <div class="msg-bot">Ask me to: "Add task Build Website"</div>
+                        </div>
+                        <div style="display:flex; padding:10px; gap:10px; border-top:1px solid var(--line);">
+                            <input type="text" id="ai-input" placeholder="Type command..." onkeypress="if(event.key==='Enter') runAI()">
+                            <button class="btn btn-primary" onclick="runAI()">➔</button>
                         </div>
                     </div>
                 </div>
             </div>
         `;
     }
-    else if (state.view === 'tasks') {
+    else if (v === 'tasks') {
         mount.innerHTML = `
             <div class="panel">
                 <table>
-                    <thead><tr><th>Task</th><th>Assignee</th><th>Due Date</th><th>Priority</th><th>Action</th></tr></thead>
+                    <thead><tr><th>Task</th><th>Assignee</th><th>Due Date</th><th>Priority</th><th>Actions</th></tr></thead>
                     <tbody>
                         ${state.tasks.map(t => {
                             const emp = state.employees.find(e => e.id === t.assignedTo);
                             return `<tr>
                                 <td style="${t.status==='DONE'?'text-decoration:line-through; color:var(--muted)':''}">${t.title}</td>
                                 <td>${emp ? emp.name : '-'}</td>
-                                <td>${t.date || 'No date'}</td>
+                                <td>${t.date || '-'}</td>
                                 <td><span class="badge ${t.priority==='HIGH'?'bg-high':'bg-med'}">${t.priority}</span></td>
-                                <td><button onclick="toggleDone('${t.id}')">${t.status==='DONE'?'✅':'⭕'}</button></td>
+                                <td>
+                                    <button class="btn" onclick="toggleDone('${t.id}')">${t.status==='DONE'?'✅':'⭕'}</button>
+                                    <button class="btn" style="color:var(--danger)" onclick="deleteTask('${t.id}')"><i class="fas fa-trash"></i></button>
+                                </td>
                             </tr>`;
                         }).join('')}
                     </tbody>
@@ -305,126 +318,117 @@ function renderView() {
             </div>
         `;
     }
-    else if (state.view === 'team') {
+    else if (v === 'team') {
         mount.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h3>Manage Staff</h3>
-                <button class="btn btn-primary" onclick="showEmpModal()">+ Add Member</button>
-            </div>
-            <div class="emp-grid">
+            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap:20px;">
                 ${state.employees.map(e => `
-                    <div class="emp-card">
-                        <i class="fas fa-user-circle" style="font-size:2.5rem; color:var(--primary);"></i>
-                        <h3>${e.name}</h3>
-                        <p>${e.role}</p>
-                        <div style="font-size:0.75rem; margin-top:10px;">Tasks: ${state.tasks.filter(t=>t.assignedTo===e.id && t.status!=='DONE').length} active</div>
-                        <button class="btn-danger btn" style="margin-top:15px; font-size:0.7rem; padding:5px 10px;" onclick="deleteEmp('${e.id}')">Remove</button>
+                    <div class="panel" style="text-align:center;">
+                        <i class="fas fa-user-circle" style="font-size:3rem; color:var(--primary); margin-bottom:10px;"></i>
+                        <h3 style="margin:5px 0;">${e.name}</h3>
+                        <p class="muted">${e.role}</p>
+                        <div style="margin-top:10px; font-weight:700; color:var(--primary);">Tasks: ${state.tasks.filter(t=>t.assignedTo===e.id && t.status!=='DONE').length}</div>
                     </div>
                 `).join('')}
             </div>
         `;
     }
-    else if (state.view === 'master') {
+    else if (v === 'master') {
         mount.innerHTML = `
             <div class="panel">
-                <h3>Task Templates</h3>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h3>Template Library</h3>
+                    <button class="btn btn-primary" onclick="document.getElementById('master-modal').classList.add('active')">+ New Template</button>
+                </div>
                 <table>
-                    ${state.masterTasks.map(m => `
-                        <tr>
-                            <td><b>${m.title}</b></td>
-                            <td><span class="badge bg-high">${m.priority}</span></td>
-                            <td><button class="btn btn-primary" onclick="applyTemplate('${m.id}')">Apply</button></td>
-                        </tr>
-                    `).join('')}
+                    <thead><tr><th>Workflow Name</th><th>Steps</th><th>Action</th></tr></thead>
+                    <tbody>
+                        ${state.masterTasks.map(m => `
+                            <tr>
+                                <td><b>${m.title}</b></td>
+                                <td><span class="badge bg-done">${m.steps ? m.steps.length : 0} Steps</span></td>
+                                <td><button class="btn btn-primary" onclick="applyTemplate('${m.id}')">Apply</button></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
                 </table>
             </div>
         `;
     }
-    else if (state.view === 'settings') {
+    else if (v === 'settings') {
         mount.innerHTML = `
             <div class="panel" style="max-width:500px;">
-                <h3>System Settings</h3>
-                <div style="margin-bottom:20px;">
-                    <label style="font-size:0.8rem; font-weight:700;">Account Name</label>
-                    <input type="text" value="${state.settings.userName}" onchange="state.settings.userName=this.value;save();" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--line);">
-                </div>
-                <button class="btn btn-primary" style="width:100%; margin-bottom:10px;" onclick="state.settings.darkMode=!state.settings.darkMode;save();render();">Toggle Dark Mode</button>
-                <button class="btn btn-primary" style="width:100%; margin-bottom:10px;" onclick="state.settings.sync=!state.settings.sync;save();render();">Sync to Google: ${state.settings.sync?'ON':'OFF'}</button>
+                <h3>System Preferences</h3>
+                <button class="btn btn-primary" style="width:100%; margin-bottom:10px;" onclick="toggleTheme()">Toggle Dark Mode</button>
+                <button class="btn btn-primary" style="width:100%; margin-bottom:10px;" onclick="state.settings.sync=!state.settings.sync; save(); render();">Sync to Google: ${state.settings.sync?'ON':'OFF'}</button>
                 <button class="btn btn-primary" style="width:100%; margin-bottom:10px;" onclick="exportExcel()">Export Task Report (Excel)</button>
                 <hr>
-                <button class="btn-danger btn" style="width:100%;" onclick="resetSystem()">WIPE ALL DATA (Factory Reset)</button>
+                <button class="btn btn-danger" style="width:100%;" onclick="factoryReset()">WIPE ALL DATA</button>
             </div>
         `;
     }
 }
 
 // ==========================================
-// 5. FUNCTIONALITY
+// 4. ACTION HANDLERS
 // ==========================================
-function showTaskModal() {
+function openTaskModal() {
     document.getElementById('f-emp').innerHTML = state.employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
     document.getElementById('task-modal').classList.add('active');
 }
-function showEmpModal() { document.getElementById('emp-modal').classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
-function addTask() {
+function saveTask() {
     const title = document.getElementById('f-title').value;
     if(!title) return;
-    state.tasks.unshift({
-        id: 't'+Date.now(),
-        title,
-        date: document.getElementById('f-date').value,
-        assignedTo: document.getElementById('f-emp').value,
-        priority: document.getElementById('f-pri').value,
-        status: 'TODO',
-        lastAlerted: ""
-    });
+    state.tasks.unshift({ id: 't'+Date.now(), title, assignedTo: document.getElementById('f-emp').value, date: document.getElementById('f-date').value, priority: document.getElementById('f-pri').value, status: 'TODO', lastAlerted: "" });
     save(); closeModal('task-modal'); render();
-}
-
-function addEmployee() {
-    const name = document.getElementById('fe-name').value;
-    const role = document.getElementById('fe-role').value;
-    if(!name) return;
-    state.employees.push({ id: 'e'+Date.now(), name, role });
-    save(); closeModal('emp-modal'); render();
-}
-
-function deleteEmp(id) {
-    if(confirm("Remove team member?")) { state.employees = state.employees.filter(e => e.id !== id); save(); render(); }
 }
 
 function toggleDone(id) {
     const t = state.tasks.find(x => x.id === id);
-    if(t) { t.status = t.status === 'DONE' ? 'TODO' : 'DONE'; save(); render(); }
+    if(t) { t.status = t.status === 'DONE' ? 'TODO' : 'DONE'; pushNotif(`✅ Completed: ${t.title}`, 'success'); save(); render(); }
 }
 
-function toggleNotifs() { document.getElementById('notif-box').classList.toggle('active'); }
-function clearNotifs() { state.notifications = []; save(); render(); }
+function deleteTask(id) { if(confirm("Delete task?")) { state.tasks = state.tasks.filter(t => t.id !== id); save(); render(); } }
+
+function saveMasterTemplate() {
+    const title = document.getElementById('mt-title').value;
+    const steps = document.getElementById('mt-steps').value.split(',').map(s => s.trim());
+    state.masterTasks.push({ id: 'm'+Date.now(), title, priority: document.getElementById('mt-priority').value, steps, usage: 0 });
+    save(); closeModal('master-modal'); render();
+}
 
 function applyTemplate(id) {
     const m = state.masterTasks.find(x => x.id === id);
     state.tasks.unshift({ id: 't'+Date.now(), title: m.title, assignedTo: 'e1', priority: m.priority, status: 'TODO', date: new Date().toISOString().split('T')[0] });
-    save(); nav('tasks');
+    save(); navigateTo('tasks'); toast("Template Applied!");
 }
 
 function runAI() {
-    const inp = document.getElementById('ai-text');
-    const box = document.getElementById('ai-chat');
-    const cmd = inp.value.trim();
+    const inp = document.getElementById('ai-input');
+    const cmd = inp.value.trim().toLowerCase();
+    const chat = document.getElementById('ai-chat');
     if(!cmd) return;
-
-    if(cmd.toLowerCase().startsWith("add task")) {
-        const title = cmd.substring(9);
+    chat.innerHTML += `<div class="msg-user">${cmd}</div>`;
+    if(cmd.startsWith("add task")) {
+        const title = cmd.replace("add task", "").trim();
         state.tasks.unshift({ id: 'tai'+Date.now(), title, assignedTo: 'e1', priority: 'MEDIUM', status: 'TODO', date: new Date().toISOString().split('T')[0] });
-        box.innerHTML = `<div style="color:var(--success)">✅ Successfully added task: "${title}"</div>`;
+        chat.innerHTML += `<div class="msg-bot">✅ Task Added: ${title}</div>`;
         save(); render();
     } else {
-        box.innerHTML = `<div style="color:var(--danger)">❌ Command not recognized. Use: "Add task [Task Name]"</div>`;
+        chat.innerHTML += `<div class="msg-bot">❌ I only understand "Add task [Title]"</div>`;
     }
-    inp.value = "";
+    inp.value = ""; chat.scrollTop = chat.scrollHeight;
 }
+
+function toggleTheme() { state.settings.darkMode = !state.settings.darkMode; document.body.classList.toggle('dark', state.settings.darkMode); save(); }
+function toggleNotifs() { document.getElementById('notif-box').classList.toggle('active'); }
+function markRead(id) { const n = state.notifications.find(x => x.id === id); if(n) n.read = true; save(); render(); }
+function clearNotifs() { state.notifications = []; save(); render(); }
+
+function logout() { if(confirm("Logout and clear session?")) { localStorage.clear(); location.reload(); } }
+function factoryReset() { if(confirm("WIPE ALL DATA?")) { localStorage.clear(); location.reload(); } }
+function toast(m) { const t = document.getElementById('toast'); t.textContent = m; t.style.display = 'block'; setTimeout(()=>t.style.display='none', 3000); }
 
 function exportExcel() {
     const ws = XLSX.utils.json_to_sheet(state.tasks);
@@ -432,10 +436,6 @@ function exportExcel() {
     XLSX.utils.book_append_sheet(wb, ws, "Tasks");
     XLSX.writeFile(wb, "Amba_V8_2_Report.xlsx");
 }
-
-function logout() { if(confirm("Clear local session and logout?")) { localStorage.clear(); location.reload(); } }
-function resetSystem() { if(confirm("This will permanently delete ALL tasks and settings. Continue?")) { localStorage.clear(); location.reload(); } }
-
 </script>
 </body>
 </html>
