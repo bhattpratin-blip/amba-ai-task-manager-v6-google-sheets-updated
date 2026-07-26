@@ -1,179 +1,122 @@
-// =====================================
-// Recurring Tasks Module - V7
-// =====================================
+// ==========================================
+// RECURRING TASKS ENGINE - V8.2 PRO
+// ==========================================
 
-let recurringTimer = null;
+/**
+ * 1. The Core Engine
+ * Runs on App Initialization
+ */
+function runRecurringEngine() {
+    console.log("Automation Engine: Checking schedules...");
+    
+    const now = new Date();
+    const todayStr = now.toDateString(); // e.g., "Mon Oct 23 2023"
+    let tasksCreated = 0;
 
-function setupRecurringTasks() {
+    state.recurring.forEach(template => {
+        if (!template.enabled) return;
 
-    if (!db.recurringTasks) db.recurringTasks = [];
-    if (!db.tasks) db.tasks = [];
-
-    if (recurringTimer) {
-        clearInterval(recurringTimer);
-    }
-
-    checkRecurringTasks();
-
-    recurringTimer = setInterval(checkRecurringTasks, 3600000);
-}
-
-function checkRecurringTasks() {
-
-    if (!db.recurringTasks || !db.recurringTasks.length) return;
-
-    const today = new Date().toISOString().slice(0,10);
-
-    db.recurringTasks.forEach(task => {
-
-        if (!task.enabled) return;
-
-        if (!task.lastRun) {
-            task.lastRun = "";
+        if (shouldRecurringRun(template, now)) {
+            spawnTaskFromTemplate(template);
+            template.lastRun = todayStr; // Mark as handled for today
+            tasksCreated++;
         }
-
-        let shouldCreate = false;
-
-        switch(task.frequency){
-
-            case "DAILY":
-                shouldCreate = task.lastRun !== today;
-                break;
-
-            case "WEEKLY":
-                shouldCreate =
-                    daysBetween(task.lastRun,today) >= 7;
-                break;
-
-            case "MONTHLY":
-                shouldCreate =
-                    monthChanged(task.lastRun,today);
-                break;
-        }
-
-        if(shouldCreate){
-
-            createRecurringInstance(task);
-
-            task.lastRun = today;
-        }
-
     });
 
-    save();
+    if (tasksCreated > 0) {
+        save();
+        render(); // Refresh UI to show new tasks
+        console.log(`Automation Engine: Created ${tasksCreated} scheduled tasks.`);
+    }
 }
 
-function createRecurringInstance(template){
+/**
+ * 2. Frequency Logic
+ * Determines if a task is due based on interval
+ */
+function shouldRecurringRun(template, now) {
+    const todayStr = now.toDateString();
+    
+    // Safety: If already run today, stop.
+    if (template.lastRun === todayStr) return false;
 
-    if(!db.tasks) db.tasks=[];
+    switch (template.frequency) {
+        case 'DAILY':
+            return true; // Any new day triggers this
 
-    const due=new Date();
+        case 'WEEKLY':
+            // Check if today is the preferred day (default to Monday/Day 1)
+            const targetDay = template.dayOfWeek || 1; 
+            return now.getDay() === targetDay;
 
-    due.setDate(
-        due.getDate() + Number(template.offsetDays || 0)
-    );
+        case 'MONTHLY':
+            // Check if today is the preferred date (default to 1st of month)
+            const targetDate = template.dayOfMonth || 1;
+            return now.getDate() === targetDate;
 
-    db.tasks.unshift({
-
-        id:"t"+Date.now()+Math.random(),
-
-        title:template.title,
-
-        description:template.description || "",
-
-        dueDate:due.toISOString().slice(0,10),
-
-        priority:template.priority || "MEDIUM",
-
-        status:"TODO",
-
-        assignedTo:template.assignedTo || null,
-
-        createdBy:template.createdBy || null,
-
-        recurringTaskId:template.id,
-
-        isRecurringInstance:true,
-
-        createdAt:new Date().toISOString()
-
-    });
-
-    if(template.assignedTo){
-
-        notify(
-            template.assignedTo,
-            "📅 New recurring task: " + template.title
-        );
+        default:
+            return false;
     }
-
 }
 
-function createRecurringTask(taskData){
-
-    if(!db.recurringTasks){
-
-        db.recurringTasks=[];
-    }
-
-    const recurring={
-
-        id:"r"+Date.now(),
-
-        title:taskData.title,
-
-        description:taskData.description || "",
-
-        priority:taskData.priority || "MEDIUM",
-
-        assignedTo:taskData.assignedTo || null,
-
-        createdBy:taskData.createdBy || null,
-
-        frequency:taskData.frequency || "WEEKLY",
-
-        offsetDays:Number(taskData.offsetDays || 0),
-
-        enabled:true,
-
-        lastRun:"",
-
-        createdAt:new Date().toISOString()
-
+/**
+ * 3. Task Factory
+ * Generates a live task from a recurring template
+ */
+function spawnTaskFromTemplate(template) {
+    const newTask = {
+        id: 'rt' + Date.now() + Math.random().toString(36).substr(2, 5),
+        title: `[AUTO] ${template.title}`,
+        description: template.description || "Automated recurring task.",
+        priority: template.priority || "MEDIUM",
+        status: "TODO",
+        assignedTo: template.assignedTo || "e1", // Default to Admin if unassigned
+        date: new Date().toISOString().split('T')[0], // Today's date
+        isRecurringInstance: true,
+        parentTemplateId: template.id
     };
 
-    db.recurringTasks.push(recurring);
+    state.tasks.unshift(newTask);
 
+    // Trigger Notification
+    const emp = state.employees.find(e => e.id === newTask.assignedTo);
+    pushNotification(
+        `📅 Scheduled Task: "${template.title}" has been assigned to ${emp ? emp.name : 'Team'}.`,
+        'info',
+        newTask.id
+    );
+}
+
+/**
+ * 4. Create New Recurring Template
+ */
+function addRecurringTemplate(data) {
+    const newTemplate = {
+        id: 'rec' + Date.now(),
+        title: data.title,
+        description: data.description || "",
+        frequency: data.frequency || 'DAILY', // DAILY, WEEKLY, MONTHLY
+        priority: data.priority || 'MEDIUM',
+        assignedTo: data.assignedTo || 'e1',
+        dayOfWeek: data.dayOfWeek || 1, // 0-6 (Sun-Sat)
+        dayOfMonth: data.dayOfMonth || 1,
+        enabled: true,
+        lastRun: null,
+        createdAt: new Date().toISOString()
+    };
+
+    state.recurring.push(newTemplate);
     save();
-
-    toast(
-        `✅ ${recurring.frequency} recurring task created`
-    );
-
-    return recurring;
+    pushNotification(`✅ Automation Created: "${data.title}"`, 'success');
 }
 
-function daysBetween(a,b){
-
-    if(!a) return 9999;
-
-    const d1=new Date(a);
-    const d2=new Date(b);
-
-    return Math.floor(
-        (d2-d1)/(1000*60*60*24)
-    );
-}
-
-function monthChanged(a,b){
-
-    if(!a) return true;
-
-    const d1=new Date(a);
-    const d2=new Date(b);
-
-    return (
-        d1.getMonth()!==d2.getMonth() ||
-        d1.getFullYear()!==d2.getFullYear()
-    );
+/**
+ * 5. Delete/Disable Template
+ */
+function deleteRecurring(id) {
+    if (confirm("Delete this automation schedule?")) {
+        state.recurring = state.recurring.filter(r => r.id !== id);
+        save();
+        render();
+    }
 }
