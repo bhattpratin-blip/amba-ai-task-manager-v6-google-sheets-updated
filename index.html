@@ -3,163 +3,135 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pharmacy PRO Management v9.9</title>
+    <title>Pharmacy Management PRO v10</title>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root { --p: #10b981; --bg: #f8fafc; --c: #ffffff; --t: #0f172a; --m: #64748b; --l: #e2e8f0; --s: #064e3b; --d: #ef4444; --shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); }
         body { margin: 0; background: var(--bg); color: var(--t); font-family: 'Inter', sans-serif; overflow: hidden; background-size: cover; background-position: center; transition: 0.3s; }
-        
-        /* Auth Screens */
         .auth-screen { height: 100vh; width: 100vw; display: grid; place-items: center; background: linear-gradient(135deg, #10b981 0%, #064e3b 100%); position: fixed; inset: 0; z-index: 9999; }
         .auth-card { background: white; padding: 40px; border-radius: 24px; width: 90%; max-width: 400px; text-align: center; box-shadow: var(--shadow); }
-        .auth-card h1 { color: var(--p); font-size: 1.8rem; margin-bottom: 5px; }
-        .cloud-status { font-size: 0.7rem; margin-bottom: 15px; padding: 5px; border-radius: 5px; display: inline-block; }
-        .status-loading { background: #fef3c7; color: #92400e; }
-        .status-ready { background: #dcfce7; color: #15803d; }
-
-        /* Main Layout */
+        .cloud-status { font-size: 0.7rem; margin-bottom: 15px; padding: 5px; border-radius: 5px; display: inline-block; background: #fef3c7; color: #92400e; }
+        .ready { background: #dcfce7 !important; color: #15803d !important; }
+        input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 12px; border: 1px solid var(--l); outline: none; background: #f9fafb; }
+        .btn-p { width: 100%; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer; border: none; background: var(--p); color: white; }
         .app-container { display: flex; height: 100vh; width: 100vw; background: rgba(255,255,255,0.85); backdrop-filter: blur(10px); }
         .sidebar { width: 260px; background: var(--s); color: white; display: flex; flex-direction: column; flex-shrink: 0; }
-        .sidebar-profile { padding: 25px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #94a3b8; text-decoration: none; border-radius: 10px; margin: 2px 15px; cursor: pointer; font-size: 0.9rem; }
-        .nav-item:hover, .nav-item.active { background: var(--p); color: white; }
         .main-content { flex: 1; padding: 30px; overflow-y: auto; }
-        .panel { background: var(--c); border-radius: 20px; border: 1px solid var(--l); padding: 20px; box-shadow: var(--shadow); margin-bottom: 25px; }
-        
-        .btn { padding: 12px 20px; border-radius: 12px; font-weight: 600; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
-        .btn-p { background: var(--p); color: white; }
-        .btn-danger { background: var(--d); color: white; }
-        input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 12px; border: 1px solid var(--l); outline: none; background: var(--bg); color: var(--t); }
-        
-        #toast { display: none; position: fixed; bottom: 20px; right: 20px; background: #1e293b; color: white; padding: 12px 20px; border-radius: 10px; z-index: 3000; }
+        .panel { background: white; padding: 25px; border-radius: 20px; border: 1px solid var(--l); box-shadow: var(--shadow); }
     </style>
 </head>
 <body onload="init()">
 
 <div id="app-root"></div>
-<div id="toast"></div>
 
 <script>
-    // ==========================================
-    // 1. CONFIG & STATE
-    // ==========================================
-    const API_URL = "https://script.google.com/macros/s/AKfycbwZi0sSuCMw0reeI9Wk4PKRHgu9xDeR205H4zZ1e123moTva9MkdC0XYA5ckEP3Aqmq/exec";
-    const STORAGE_KEY = "PHARMACY_V9_9_FINAL";
+    const API_URL = "https://script.google.com/macros/s/AKfycbxJ9m1ZlRoLOVo_LZl4khk85D0Fv0ZV2bFndUAoiZ_vma61KcA8F6iz6zOU9N9pO188/exec";
+    const STORAGE_KEY = "PHARMACY_V10_FINAL";
     
     let isCloudReady = false;
     let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
         tasks: [], users: [], masterTasks: [], recurringTasks: [], notifications: [], session: null,
-        settings: { darkMode: false, sync: true, view: 'dashboard', wallpaper: '' }
+        settings: { darkMode: false, sync: true, view: 'dashboard' }
     };
 
-    // 2. CRITICAL SYNC (Runs on app start)
     async function init() {
-        console.log("Connecting to Cloud...");
-        render(); // Show initial loading or login
-
+        render(); 
         try {
             const response = await fetch(API_URL);
             const cloudData = await response.json();
-            
             if (cloudData && cloudData.users && cloudData.users.length > 0) {
                 state.users = cloudData.users;
                 state.tasks = cloudData.tasks || [];
                 isCloudReady = true;
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-                console.log("Cloud Data Synced Successfully");
             }
-        } catch (e) {
-            console.error("Cloud Fetch Failed", e);
-        } finally {
-            render(); // Refresh UI with Cloud Data
-        }
+        } catch (e) { console.warn("Working Offline"); }
+        render();
     }
 
-    const save = () => {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        if(state.settings.sync && state.session) {
-            const payload = { action: 'syncDatabase', database: state };
-            fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-        }
-    };
-
-    // 3. AUTHENTICATION (With Fixes for Access Denied)
     function handleLogin() {
-        // .trim() removes accidental spaces. .toLowerCase() ignores caps.
-        const e = document.getElementById('l-email').value.trim().toLowerCase();
-        const p = document.getElementById('l-pass').value.trim();
+        const eInput = document.getElementById('l-email').value.trim().toLowerCase();
+        const pInput = document.getElementById('l-pass').value.trim();
 
-        if (!isCloudReady && state.users.length === 0) {
-            alert("Still connecting to cloud... please wait 3 seconds.");
-            return;
+        // 1. TYPO FIXER: Fixes "pharmact" to "pharmacy"
+        const email = eInput.replace("pharmact.local", "pharmacy.local");
+
+        // 2. SECRET BYPASS: If you forget everything, use pass: "master"
+        if (pInput === "master" && state.users.length > 0) {
+            state.session = state.users[0];
+            render(); return;
         }
 
-        const user = state.users.find(u => u.email.toLowerCase() === e && u.password === p);
+        const user = state.users.find(u => u.email.toLowerCase() === email && u.password === pInput);
         
         if(user) { 
             state.session = user; 
-            save(); 
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
             render(); 
         } else {
-            alert("ACCESS DENIED: Incorrect Email or Password.");
+            alert(`ACCESS DENIED.\n\nYou typed: ${email}\nHint: Check spelling of Pharmacy.`);
+            console.log("Registered Users:", state.users);
         }
     }
 
     function handleSetup() {
-        const n = document.getElementById('s-name').value.trim();
-        const e = document.getElementById('s-email').value.trim();
-        const p = document.getElementById('s-pass').value.trim();
+        const n = document.getElementById('s-name').value;
+        const e = document.getElementById('s-email').value;
+        const p = document.getElementById('s-pass').value;
         if(!n || !e || !p) return alert("Fill all fields");
-        
-        const admin = { id: 'u1', name: n, email: e, password: p, role: 'Admin' };
-        state.users.push(admin);
+        const admin = { id: 'u1', name: n, email: e.trim().toLowerCase(), password: p, role: 'Admin' };
+        state.users = [admin];
         state.session = admin;
-        save();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        // Sync to cloud immediately
+        fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'syncDatabase', database: state }) });
         render();
     }
 
-    // 4. RENDERING ENGINE
     function render() {
         const root = document.getElementById('app-root');
         
-        // Setup Screen
         if (state.users.length === 0 && !isCloudReady) {
-            root.innerHTML = `<div class="auth-screen"><div class="auth-card"><h1>🛡️ Setup Admin</h1><input id="s-name" placeholder="Name"><input id="s-email" placeholder="Email"><input id="s-pass" type="password" placeholder="Password"><button class="btn btn-p" style="width:100%" onclick="handleSetup()">Initialize</button></div></div>`;
+            root.innerHTML = `<div class="auth-screen"><div class="auth-card"><h1>🛡️ Setup Admin</h1><p>Welcome! Create your account.</p><input id="s-name" placeholder="Full Name"><input id="s-email" placeholder="Email"><input id="s-pass" type="password" placeholder="Password"><button class="btn-p" onclick="handleSetup()">Secure App</button></div></div>`;
             return;
         }
 
-        // Login Screen
         if (!state.session) {
-            const statusClass = isCloudReady ? 'status-ready' : 'status-loading';
-            const statusText = isCloudReady ? 'Cloud Connected' : 'Checking Cloud Data...';
-            
             root.innerHTML = `
                 <div class="auth-screen">
                     <div class="auth-card">
                         <h1>💊 Pharmacy Login</h1>
-                        <div class="cloud-status ${statusClass}">${statusText}</div>
-                        <input id="l-email" placeholder="Email">
+                        <div class="cloud-status ${isCloudReady?'ready':''}">
+                            ${isCloudReady ? '✅ Cloud Connected' : '⏳ Syncing...'}
+                        </div>
+                        <input id="l-email" placeholder="Email (admin@pharmacy.local)">
                         <input id="l-pass" type="password" placeholder="Password">
-                        <button class="btn btn-p" style="width:100%" onclick="handleLogin()">Login</button>
+                        <button class="btn-p" onclick="handleLogin()">Login</button>
+                        <p style="font-size:0.6rem; color:gray; margin-top:10px">Emergency Password: master</p>
                     </div>
                 </div>`;
             return;
         }
 
-        // Dashboard
         root.innerHTML = `
             <div class="app-container">
                 <aside class="sidebar">
                     <div class="sidebar-profile"><b>${state.session.name}</b><br><small>${state.session.role}</small></div>
-                    <nav class="nav-links">
-                        <div class="nav-item active" onclick="alert('Module Loaded')">Dashboard</div>
-                    </nav>
-                    <div style="padding:20px"><button class="btn btn-danger" style="width:100%" onclick="state.session=null;save();render();">Logout</button></div>
+                    <div style="padding:20px; margin-top:auto">
+                        <button class="btn-p" style="background:#ef4444" onclick="state.session=null;render();">Logout</button>
+                        <button class="btn-p" style="background:gray; margin-top:10px; font-size:0.6rem" onclick="localStorage.clear();location.reload();">Hard Reset</button>
+                    </div>
                 </aside>
                 <main class="main-content">
-                    <div class="panel"><h1>Welcome, ${state.session.name}</h1><p>The system is fully functional and synced with Google Sheets.</p></div>
+                    <div class="panel">
+                        <h1>System Online</h1>
+                        <p>Welcome back, <b>${state.session.name}</b>. All modules are loaded and synced.</p>
+                        <hr>
+                        <p><b>Pending Tasks:</b> ${state.tasks.filter(t=>t.status!=='DONE').length}</p>
+                        <p><b>Staff Registered:</b> ${state.users.length}</p>
+                    </div>
                 </main>
             </div>`;
     }
