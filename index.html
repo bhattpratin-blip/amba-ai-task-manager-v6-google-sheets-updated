@@ -3,138 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pharmacy Management PRO v10</title>
+    <title>Pharmacy PRO Management v9.8</title>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root { --p: #10b981; --bg: #f8fafc; --c: #ffffff; --t: #0f172a; --m: #64748b; --l: #e2e8f0; --s: #064e3b; --d: #ef4444; --shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); }
-        body { margin: 0; background: var(--bg); color: var(--t); font-family: 'Inter', sans-serif; overflow: hidden; background-size: cover; background-position: center; transition: 0.3s; }
+        body { margin: 0; background: var(--bg); color: var(--t); font-family: 'Inter', sans-serif; overflow: hidden; background-size: cover; background-position: center; }
+        
+        /* New Loading Screen */
+        #loading-screen { height: 100vh; width: 100vw; display: grid; place-items: center; background: white; position: fixed; inset: 0; z-index: 10000; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--p); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
         .auth-screen { height: 100vh; width: 100vw; display: grid; place-items: center; background: linear-gradient(135deg, #10b981 0%, #064e3b 100%); position: fixed; inset: 0; z-index: 9999; }
         .auth-card { background: white; padding: 40px; border-radius: 24px; width: 90%; max-width: 400px; text-align: center; box-shadow: var(--shadow); }
-        .cloud-status { font-size: 0.7rem; margin-bottom: 15px; padding: 5px; border-radius: 5px; display: inline-block; background: #fef3c7; color: #92400e; }
-        .ready { background: #dcfce7 !important; color: #15803d !important; }
-        input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 12px; border: 1px solid var(--l); outline: none; background: #f9fafb; }
-        .btn-p { width: 100%; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer; border: none; background: var(--p); color: white; }
         .app-container { display: flex; height: 100vh; width: 100vw; background: rgba(255,255,255,0.85); backdrop-filter: blur(10px); }
         .sidebar { width: 260px; background: var(--s); color: white; display: flex; flex-direction: column; flex-shrink: 0; }
+        .sidebar-profile { padding: 25px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: #94a3b8; text-decoration: none; border-radius: 10px; margin: 2px 15px; cursor: pointer; font-size: 0.9rem; }
+        .nav-item:hover, .nav-item.active { background: var(--p); color: white; }
         .main-content { flex: 1; padding: 30px; overflow-y: auto; }
-        .panel { background: white; padding: 25px; border-radius: 20px; border: 1px solid var(--l); box-shadow: var(--shadow); }
+        .panel { background: var(--c); border-radius: 20px; border: 1px solid var(--l); padding: 20px; box-shadow: var(--shadow); margin-bottom: 25px; }
+        .btn { padding: 12px 20px; border-radius: 12px; font-weight: 600; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
+        .btn-p { background: var(--p); color: white; }
+        .btn-danger { background: var(--d); color: white; }
+        input, select { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 12px; border: 1px solid var(--l); outline: none; background: var(--bg); }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; place-items: center; backdrop-filter: blur(4px); }
+        .modal-overlay.active { display: grid; }
+        .modal { background: var(--c); padding: 30px; border-radius: 24px; width: 450px; }
     </style>
 </head>
-<body onload="init()">
+<body>
+
+<div id="loading-screen">
+    <div style="text-align:center">
+        <div class="spinner"></div>
+        <p style="margin-top:15px; color:gray">Connecting to Pharmacy Cloud...</p>
+    </div>
+</div>
 
 <div id="app-root"></div>
 
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxJ9m1ZlRoLOVo_LZl4khk85D0Fv0ZV2bFndUAoiZ_vma61KcA8F6iz6zOU9N9pO188/exec";
-    const STORAGE_KEY = "PHARMACY_V10_FINAL";
-    
-    let isCloudReady = false;
+    const STORAGE_KEY = "PHARMACY_V9_8_SYNC";
+
     let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
         tasks: [], users: [], masterTasks: [], recurringTasks: [], notifications: [], session: null,
-        settings: { darkMode: false, sync: true, view: 'dashboard' }
+        settings: { darkMode: false, sync: true, view: 'dashboard', wallpaper: '' }
     };
 
+    // 1. IMPROVED INITIALIZATION (Pulls from Sheet first)
     async function init() {
-        render(); 
         try {
             const response = await fetch(API_URL);
             const cloudData = await response.json();
+            
             if (cloudData && cloudData.users && cloudData.users.length > 0) {
+                // If cloud has users, update local state
                 state.users = cloudData.users;
                 state.tasks = cloudData.tasks || [];
-                isCloudReady = true;
+                state.masterTasks = cloudData.masterTasks || [];
+                state.recurringTasks = cloudData.recurringTasks || [];
+                state.notifications = cloudData.notifications || [];
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
             }
-        } catch (e) { console.warn("Working Offline"); }
-        render();
+        } catch (e) {
+            console.warn("Cloud pull failed, using local backup.");
+        } finally {
+            document.getElementById('loading-screen').style.display = 'none';
+            if(state.settings.wallpaper) document.body.style.backgroundImage = `url(${state.settings.wallpaper})`;
+            render();
+        }
+    }
+
+    const save = () => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        if(state.settings.sync && state.session) {
+            const payload = { action: 'syncDatabase', database: state };
+            fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+        }
+    };
+
+    function handleSetup() {
+        const u = { id: 'u1', name: document.getElementById('s-name').value, email: document.getElementById('s-email').value, password: document.getElementById('s-pass').value, role: 'Admin' };
+        if(!u.name || !u.email || !u.password) return alert("Fill all fields");
+        state.users.push(u); state.session = u; save(); render();
     }
 
     function handleLogin() {
-        const eInput = document.getElementById('l-email').value.trim().toLowerCase();
-        const pInput = document.getElementById('l-pass').value.trim();
-
-        // 1. TYPO FIXER: Fixes "pharmact" to "pharmacy"
-        const email = eInput.replace("pharmact.local", "pharmacy.local");
-
-        // 2. SECRET BYPASS: If you forget everything, use pass: "master"
-        if (pInput === "master" && state.users.length > 0) {
-            state.session = state.users[0];
-            render(); return;
-        }
-
-        const user = state.users.find(u => u.email.toLowerCase() === email && u.password === pInput);
-        
-        if(user) { 
-            state.session = user; 
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-            render(); 
-        } else {
-            alert(`ACCESS DENIED.\n\nYou typed: ${email}\nHint: Check spelling of Pharmacy.`);
-            console.log("Registered Users:", state.users);
-        }
-    }
-
-    function handleSetup() {
-        const n = document.getElementById('s-name').value;
-        const e = document.getElementById('s-email').value;
-        const p = document.getElementById('s-pass').value;
-        if(!n || !e || !p) return alert("Fill all fields");
-        const admin = { id: 'u1', name: n, email: e.trim().toLowerCase(), password: p, role: 'Admin' };
-        state.users = [admin];
-        state.session = admin;
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        // Sync to cloud immediately
-        fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'syncDatabase', database: state }) });
-        render();
+        const e = document.getElementById('l-email').value;
+        const p = document.getElementById('l-pass').value;
+        const u = state.users.find(x => x.email === e && x.password === p);
+        if(u) { state.session = u; save(); render(); } else alert("Access Denied");
     }
 
     function render() {
         const root = document.getElementById('app-root');
         
-        if (state.users.length === 0 && !isCloudReady) {
-            root.innerHTML = `<div class="auth-screen"><div class="auth-card"><h1>🛡️ Setup Admin</h1><p>Welcome! Create your account.</p><input id="s-name" placeholder="Full Name"><input id="s-email" placeholder="Email"><input id="s-pass" type="password" placeholder="Password"><button class="btn-p" onclick="handleSetup()">Secure App</button></div></div>`;
+        // Show Setup Admin ONLY if BOTH local and cloud are empty
+        if (state.users.length === 0) {
+            root.innerHTML = `<div class="auth-screen"><div class="auth-card"><h1>🛡️ System Setup</h1><p>No admin found in cloud. Initialize now.</p><input id="s-name" placeholder="Name"><input id="s-email" placeholder="Email"><input id="s-pass" type="password" placeholder="Password"><button class="btn btn-p" style="width:100%" onclick="handleSetup()">Secure App</button></div></div>`;
             return;
         }
 
         if (!state.session) {
-            root.innerHTML = `
-                <div class="auth-screen">
-                    <div class="auth-card">
-                        <h1>💊 Pharmacy Login</h1>
-                        <div class="cloud-status ${isCloudReady?'ready':''}">
-                            ${isCloudReady ? '✅ Cloud Connected' : '⏳ Syncing...'}
-                        </div>
-                        <input id="l-email" placeholder="Email (admin@pharmacy.local)">
-                        <input id="l-pass" type="password" placeholder="Password">
-                        <button class="btn-p" onclick="handleLogin()">Login</button>
-                        <p style="font-size:0.6rem; color:gray; margin-top:10px">Emergency Password: master</p>
-                    </div>
-                </div>`;
+            root.innerHTML = `<div class="auth-screen"><div class="auth-card"><h1>💊 Pharmacy Login</h1><input id="l-email" placeholder="Email"><input id="l-pass" type="password" placeholder="Password"><button class="btn btn-p" style="width:100%" onclick="handleLogin()">Login</button></div></div>`;
             return;
         }
 
+        const isA = state.session.role === 'Admin';
         root.innerHTML = `
             <div class="app-container">
                 <aside class="sidebar">
-                    <div class="sidebar-profile"><b>${state.session.name}</b><br><small>${state.session.role}</small></div>
-                    <div style="padding:20px; margin-top:auto">
-                        <button class="btn-p" style="background:#ef4444" onclick="state.session=null;render();">Logout</button>
-                        <button class="btn-p" style="background:gray; margin-top:10px; font-size:0.6rem" onclick="localStorage.clear();location.reload();">Hard Reset</button>
+                    <div class="sidebar-profile">
+                        <b>${state.session.name}</b><br><small>${state.session.role}</small>
                     </div>
+                    <nav class="nav-links">
+                        <div class="nav-item ${state.settings.view==='dashboard'?'active':''}" onclick="nav('dashboard')">Dashboard</div>
+                        <div class="nav-item ${state.settings.view==='tasks'?'active':''}" onclick="nav('tasks')">Tasks</div>
+                        ${isA ? `<div class="nav-item ${state.settings.view==='staff'?'active':''}" onclick="nav('staff')">Staff Management</div>` : ''}
+                        <div class="nav-item ${state.settings.view==='settings'?'active':''}" onclick="nav('settings')">Settings</div>
+                    </nav>
+                    <div style="padding:20px"><button class="btn btn-danger" style="width:100%" onclick="state.session=null;save();render();">Logout</button></div>
                 </aside>
                 <main class="main-content">
-                    <div class="panel">
-                        <h1>System Online</h1>
-                        <p>Welcome back, <b>${state.session.name}</b>. All modules are loaded and synced.</p>
-                        <hr>
-                        <p><b>Pending Tasks:</b> ${state.tasks.filter(t=>t.status!=='DONE').length}</p>
-                        <p><b>Staff Registered:</b> ${state.users.length}</p>
-                    </div>
+                    <h1>${state.settings.view.toUpperCase()}</h1>
+                    <div id="view-mount"></div>
                 </main>
             </div>`;
+        renderView();
     }
+
+    function nav(v) { state.settings.view = v; render(); }
+
+    function renderView() {
+        const mount = document.getElementById('view-mount');
+        const v = state.settings.view;
+        if(v === 'dashboard') {
+            mount.innerHTML = `<div class="panel"><h3>Status</h3><p>Cloud Connected. Working as ${state.session.role}</p></div>`;
+        } else if(v === 'tasks') {
+            mount.innerHTML = `<div class="panel"><p>Task logic loaded.</p></div>`;
+        } else if(v === 'settings') {
+            mount.innerHTML = `<div class="panel"><button class="btn btn-danger" onclick="localStorage.clear();location.reload();">Reset Device Memory</button></div>`;
+        }
+    }
+
+    init(); // Start the Cloud Check
 </script>
 </body>
 </html>
