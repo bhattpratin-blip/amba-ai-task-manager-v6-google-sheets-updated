@@ -3,122 +3,175 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pharmacy Management v9.2 - Pro</title>
+    <title>Pharmacy Management System</title>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #10b981; --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --muted: #64748b; --line: #e2e8f0; --sidebar: #064e3b; --danger: #ef4444; --shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); }
         body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; overflow: hidden; background-size: cover; background-position: center; transition: 0.3s; }
-        .login-screen { height: 100vh; width: 100vw; display: grid; place-items: center; background: linear-gradient(135deg, #10b981 0%, #064e3b 100%); position: fixed; inset: 0; z-index: 9999; }
-        .login-card { background: white; padding: 40px; border-radius: 24px; width: 100%; max-width: 400px; text-align: center; }
+        
+        /* Auth & Setup Screens */
+        .auth-screen { height: 100vh; width: 100vw; display: grid; place-items: center; background: linear-gradient(135deg, #10b981 0%, #064e3b 100%); position: fixed; inset: 0; z-index: 9999; }
+        .auth-card { background: white; padding: 40px; border-radius: 24px; width: 100%; max-width: 400px; text-align: center; box-shadow: var(--shadow); }
+        .auth-card h1 { color: var(--primary); margin: 0 0 10px; font-size: 1.6rem; }
+        .auth-card p { color: var(--muted); font-size: 0.85rem; margin-bottom: 20px; }
+        
+        /* App Layout */
         .app-container { display: flex; height: 100vh; width: 100vw; background: rgba(255,255,255,0.85); backdrop-filter: blur(10px); }
         .sidebar { width: 260px; background: var(--sidebar); color: white; display: flex; flex-direction: column; flex-shrink: 0; }
-        .sidebar-profile { padding: 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-profile { padding: 25px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .nav-links { flex: 1; padding: 15px; overflow-y: auto; }
         .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px; color: #94a3b8; text-decoration: none; border-radius: 10px; margin-bottom: 5px; cursor: pointer; font-size: 0.9rem; }
         .nav-item:hover, .nav-item.active { background: var(--primary); color: white; }
+        
         .main-content { flex: 1; padding: 25px; overflow-y: auto; }
         .panel { background: var(--card); border-radius: 16px; border: 1px solid var(--line); padding: 20px; box-shadow: var(--shadow); margin-bottom: 20px; }
         .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
         .stat-card { background: var(--card); padding: 15px; border-radius: 12px; border: 1px solid var(--line); text-align: center; }
-        .profile-img { width: 60px; height: 60px; border-radius: 50%; border: 3px solid var(--primary); margin-bottom: 5px; }
-        .btn { padding: 10px 15px; border-radius: 10px; font-weight: 600; cursor: pointer; border: none; transition: 0.2s; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 8px; }
+        
+        /* Elements */
+        .profile-img { width: 65px; height: 65px; border-radius: 50%; border: 3px solid var(--primary); margin-bottom: 10px; object-fit: cover; }
+        .btn { padding: 10px 18px; border-radius: 12px; font-weight: 600; cursor: pointer; border: none; transition: 0.2s; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 8px; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-danger { background: var(--danger); color: white; }
-        .btn-whatsapp { background: #25d366; color: white; padding: 5px 8px; border-radius: 6px; }
+        .btn-whatsapp { background: #25d366; color: white; padding: 5px 10px; border-radius: 8px; }
+        
         table { width: 100%; border-collapse: collapse; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--line); }
-        .notif-bell { position: relative; cursor: pointer; font-size: 1.2rem; }
-        .notif-badge { position: absolute; top: -5px; right: -5px; background: var(--danger); color: white; font-size: 0.6rem; padding: 2px 5px; border-radius: 10px; }
+        input, select { width: 100%; padding: 12px; margin-bottom: 12px; border-radius: 10px; border: 1px solid var(--line); outline: none; }
+        
+        /* Notifications */
+        .notif-bell { position: relative; cursor: pointer; font-size: 1.3rem; }
+        .notif-badge { position: absolute; top: -5px; right: -5px; background: var(--danger); color: white; font-size: 0.65rem; padding: 2px 5px; border-radius: 10px; }
+        
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; place-items: center; }
         .modal-overlay.active { display: grid; }
-        .modal { background: var(--card); padding: 25px; border-radius: 20px; width: 400px; }
-        input, select { width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 8px; border: 1px solid var(--line); }
+        .modal { background: var(--card); padding: 30px; border-radius: 20px; width: 420px; box-shadow: var(--shadow); }
+        #toast { display: none; position: fixed; bottom: 20px; right: 20px; background: #1e293b; color: white; padding: 12px 20px; border-radius: 10px; z-index: 3000; }
     </style>
 </head>
 <body onload="init()">
+
 <div id="app-root"></div>
+<div id="toast"></div>
 
-<!-- Modal: Recurring Task -->
-<div class="modal-overlay" id="modal-recurring">
+<!-- Modal: Task -->
+<div class="modal-overlay" id="modal-task">
     <div class="modal">
-        <h2>Add Daily Automation</h2>
-        <input id="f-r-title" placeholder="Daily Task Name (e.g. Fridge Check)">
-        <button class="btn btn-primary" style="width:100%" onclick="saveRecurring()">Activate Daily</button>
-        <button class="btn" style="width:100%;margin-top:10px" onclick="closeModal('modal-recurring')">Cancel</button>
-    </div>
-</div>
-
-<!-- Modal: Master Task -->
-<div class="modal-overlay" id="modal-master">
-    <div class="modal">
-        <h2>Save as Template</h2>
-        <input id="f-m-title" placeholder="Template Name">
-        <button class="btn btn-primary" style="width:100%" onclick="saveMaster()">Save Template</button>
-        <button class="btn" style="width:100%;margin-top:10px" onclick="closeModal('modal-master')">Cancel</button>
+        <h2>Assign New Task</h2>
+        <input id="f-t-title" placeholder="Task description...">
+        <select id="f-t-user"></select>
+        <input type="date" id="f-t-date">
+        <button class="btn btn-primary" style="width:100%" onclick="saveTask()">Save Task</button>
+        <button class="btn" style="width:100%; margin-top:10px; background:none;" onclick="closeModal('modal-task')">Cancel</button>
     </div>
 </div>
 
 <script>
+    // ==========================================
+    // 1. CONFIG & STATE
+    // ==========================================
     const API_URL = "https://script.google.com/macros/s/AKfycbxJ9m1ZlRoLOVo_LZl4khk85D0Fv0ZV2bFndUAoiZ_vma61KcA8F6iz6zOU9N9pO188/exec";
-    const STORAGE_KEY = "PHARMACY_V9_2_PRO";
+    const STORAGE_KEY = "PHARMACY_V9_4_SECURE";
 
+    // Initial state starts completely empty for security
     let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
-        tasks: [], users: [{id: 'u1', name: 'Admin', email: 'admin@pharmacy.local', password: '123', phone: '', role: 'Admin'}],
-        masterTasks: [], recurringTasks: [], notifications: [], session: null,
+        tasks: [],
+        users: [], // No hardcoded users
+        masterTasks: [],
+        recurringTasks: [],
+        notifications: [],
+        session: null,
         settings: { darkMode: false, sync: true, view: 'dashboard', wallpaper: '' }
     };
 
     const save = () => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        if(state.settings.sync && state.session) syncCloud();
+        if(state.settings.sync && state.session) {
+            const payload = {
+                action: 'syncDatabase',
+                database: {
+                    tasks: state.tasks, users: state.users,
+                    masterTasks: state.masterTasks, recurringTasks: state.recurringTasks,
+                    notifications: state.notifications
+                }
+            };
+            fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+        }
     };
 
-    async function syncCloud() {
-        try { await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'syncDatabase', database: state }) }); } catch(e) {}
-    }
-
-    // --- AUTOMATION ENGINE ---
-    function runEngines() {
-        const today = new Date().toDateString();
-        let updated = false;
-
-        // 1. Process Recurring Tasks (Daily)
-        state.recurringTasks.forEach(r => {
-            if (r.lastRun !== today) {
-                state.tasks.unshift({ id: 'rt'+Date.now(), title: "[AUTO] "+r.title, userId: 'u1', status: 'TODO', date: new Date().toISOString().split('T')[0] });
-                r.lastRun = today;
-                state.notifications.unshift({ text: "Generated Daily: " + r.title, read: false, time: new Date().toLocaleTimeString() });
-                updated = true;
-            }
-        });
-
-        if(updated) save();
-    }
-
+    // ==========================================
+    // 2. AUTHENTICATION & SETUP
+    // ==========================================
     function init() {
-        if(state.session) runEngines();
         if(state.settings.wallpaper) document.body.style.backgroundImage = `url(${state.settings.wallpaper})`;
+        if(state.session) runEngines();
         render();
     }
 
-    function handleLogin() {
-        const e = document.getElementById('l-email').value;
-        const p = document.getElementById('l-pass').value;
-        const user = state.users.find(u => u.email === e && u.password === p);
-        if(user) { state.session = user; save(); init(); } else alert("Error");
+    function handleFirstTimeSetup() {
+        const email = document.getElementById('setup-email').value.trim();
+        const pass = document.getElementById('setup-pass').value.trim();
+        const name = document.getElementById('setup-name').value.trim();
+
+        if(!email || !pass || !name) return alert("Please fill all fields to secure your app.");
+
+        const adminUser = { id: 'u1', name: name, email: email, password: pass, phone: '', role: 'Admin', profileImg: '' };
+        state.users.push(adminUser);
+        state.session = adminUser;
+        save();
+        render();
+        showToast("System Secured. Welcome Admin.");
     }
 
-    function nav(v) { state.settings.view = v; render(); }
+    function handleLogin() {
+        const e = document.getElementById('l-email').value.trim();
+        const p = document.getElementById('l-pass').value.trim();
+        const user = state.users.find(u => u.email === e && u.password === p);
+        if(user) { state.session = user; save(); init(); } else alert("Invalid Credentials");
+    }
 
+    function logout() { state.session = null; save(); render(); }
+
+    // ==========================================
+    // 3. RENDERING ENGINE
+    // ==========================================
     function render() {
         const root = document.getElementById('app-root');
-        if (!state.session) {
-            root.innerHTML = `<div class="login-screen"><div class="login-card"><h1>💊 Pharmacy Task</h1><input id="l-email" placeholder="Email" value="admin@pharmacy.local"><input id="l-pass" type="password" placeholder="Password" value="123"><button class="btn btn-primary" style="width:100%" onclick="handleLogin()">Login</button></div></div>`;
+
+        // SCENARIO 1: No users exist (Brand New App)
+        if (state.users.length === 0) {
+            root.innerHTML = `
+                <div class="auth-screen">
+                    <div class="auth-card">
+                        <h1>🛡️ Secure Setup</h1>
+                        <p>Create your private Admin account.</p>
+                        <input id="setup-name" placeholder="Your Name">
+                        <input id="setup-email" placeholder="Admin Email">
+                        <input id="setup-pass" type="password" placeholder="Admin Password">
+                        <button class="btn btn-primary" style="width:100%" onclick="handleFirstTimeSetup()">Initialize System</button>
+                    </div>
+                </div>`;
             return;
         }
 
+        // SCENARIO 2: Users exist but not logged in
+        if (!state.session) {
+            root.innerHTML = `
+                <div class="auth-screen">
+                    <div class="auth-card">
+                        <h1>💊 Pharmacy Login</h1>
+                        <p>Access your task management dashboard.</p>
+                        <input id="l-email" placeholder="Email">
+                        <input id="l-pass" type="password" placeholder="Password">
+                        <button class="btn btn-primary" style="width:100%" onclick="handleLogin()">Sign In</button>
+                    </div>
+                </div>`;
+            return;
+        }
+
+        // SCENARIO 3: Logged In
         const unread = state.notifications.filter(n => !n.read).length;
         root.innerHTML = `
             <div class="app-container">
@@ -126,23 +179,23 @@
                     <div class="sidebar-profile">
                         <img src="${state.session.profileImg || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}" class="profile-img">
                         <div style="font-weight:bold">${state.session.name}</div>
+                        <small style="opacity:0.7">${state.session.role}</small>
                     </div>
                     <nav class="nav-links">
-                        <div class="nav-item ${state.settings.view==='dashboard'?'active':''}" onclick="nav('dashboard')"><i class="fas fa-home"></i> Dashboard</div>
-                        <div class="nav-item ${state.settings.view==='tasks'?'active':''}" onclick="nav('tasks')"><i class="fas fa-list"></i> Task List</div>
-                        <div class="nav-item ${state.settings.view==='templates'?'active':''}" onclick="nav('templates')"><i class="fas fa-copy"></i> Master Templates</div>
-                        <div class="nav-item ${state.settings.view==='staff'?'active':''}" onclick="nav('staff')"><i class="fas fa-users"></i> Staff Directory</div>
-                        <div class="nav-item ${state.settings.view==='settings'?'active':''}" onclick="nav('settings')"><i class="fas fa-cog"></i> Settings</div>
+                        <div class="nav-item ${state.settings.view==='dashboard'?'active':''}" onclick="nav('dashboard')"><i class="fas fa-chart-line"></i> Dashboard</div>
+                        <div class="nav-item ${state.settings.view==='tasks'?'active':''}" onclick="nav('tasks')"><i class="fas fa-list-check"></i> Task List</div>
+                        <div class="nav-item ${state.settings.view==='staff'?'active':''}" onclick="nav('staff')"><i class="fas fa-users-cog"></i> Staff Management</div>
+                        <div class="nav-item ${state.settings.view==='settings'?'active':''}" onclick="nav('settings')"><i class="fas fa-user-shield"></i> Settings</div>
                     </nav>
-                    <div style="padding:15px"><button class="btn btn-danger" style="width:100%" onclick="state.session=null;save();render();">Logout</button></div>
+                    <div style="padding:20px"><button class="btn btn-danger" style="width:100%" onclick="logout()">Logout</button></div>
                 </aside>
                 <main class="main-content">
-                    <header style="display:flex; justify-content:space-between; margin-bottom:20px">
-                        <h1>${state.settings.view.toUpperCase()}</h1>
+                    <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px">
+                        <h1 style="text-transform:uppercase; letter-spacing:1px">${state.settings.view}</h1>
                         <div style="display:flex; gap:15px; align-items:center;">
-                            <div class="notif-bell" onclick="state.notifications.forEach(n=>n.read=true);save();render();"><i class="fas fa-bell"></i>${unread ? `<span class="notif-badge">${unread}</span>` : ''}</div>
-                            <button class="btn btn-primary" onclick="openModal('modal-recurring')">+ Automation</button>
-                            <button class="btn btn-primary" onclick="nav('tasks')">+ New Task</button>
+                            <div class="notif-bell" onclick="clearNotifs()"><i class="fas fa-bell"></i>${unread ? `<span class="notif-badge">${unread}</span>` : ''}</div>
+                            <button class="btn btn-primary" onclick="downloadReport()">Export Excel</button>
+                            <button class="btn btn-primary" onclick="openTaskModal()">+ Add Task</button>
                         </div>
                     </header>
                     <div id="view-mount"></div>
@@ -155,56 +208,76 @@
         const mount = document.getElementById('view-mount');
         const v = state.settings.view;
         if(v === 'dashboard') {
+            const pending = state.tasks.filter(t=>t.status!=='DONE').length;
             mount.innerHTML = `
                 <div class="stats-grid">
-                    <div class="stat-card"><span>Pending</span><h2>${state.tasks.filter(t=>t.status!=='DONE').length}</h2></div>
-                    <div class="stat-card"><span>Staff</span><h2>${state.users.length}</h2></div>
-                    <div class="stat-card"><span>Templates</span><h2>${state.masterTasks.length}</h2></div>
-                    <div class="stat-card"><span>Alerts</span><h2>${state.notifications.length}</h2></div>
+                    <div class="stat-card"><span>Active Tasks</span><h2>${pending}</h2></div>
+                    <div class="stat-card"><span>Total Staff</span><h2>${state.users.length}</h2></div>
+                    <div class="stat-card"><span>Sync Status</span><h2 style="font-size:1rem; color:var(--primary)">${state.settings.sync?'Online':'Offline'}</h2></div>
+                    <div class="stat-card"><span>Import</span><br><input type="file" style="font-size:0.6rem" onchange="uploadExcel(event)"></div>
                 </div>
-                <div class="panel"><h3>Active Daily Automations</h3>
-                ${state.recurringTasks.map(r => `<div style="padding:10px; border-bottom:1px solid var(--line)">🔄 ${r.title}</div>`).join('') || 'No recurring tasks'}
-                </div>`;
-        } else if(v === 'templates') {
-            mount.innerHTML = `<div class="panel"><h3>Master Task Templates</h3><button class="btn btn-primary" onclick="openModal('modal-master')">Create Template</button>
-            <table><thead><tr><th>Name</th><th>Action</th></tr></thead><tbody>
-            ${state.masterTasks.map(m => `<tr><td>${m.title}</td><td><button class="btn btn-primary" onclick="applyTemplate('${m.id}')">Apply</button></td></tr>`).join('')}
+                <div class="panel"><h3>Auto-WhatsApp Reminders</h3><p class="muted">To notify staff, go to the Task List and click the WhatsApp icon on any pending task.</p></div>`;
+        } 
+        else if(v === 'tasks') {
+            mount.innerHTML = `<div class="panel"><table><thead><tr><th>Task</th><th>Assigned</th><th>Status</th><th>WhatsApp</th></tr></thead><tbody>
+            ${state.tasks.map(t => {
+                const u = state.users.find(x => x.id === t.userId);
+                return `<tr><td><b>${t.title}</b></td><td>${u ? u.name : '-'}</td><td><button onclick="toggleDone('${t.id}')">${t.status==='DONE'?'✅':'⭕'}</button></td>
+                <td>${t.status!=='DONE' && u?.phone ? `<button class="btn-whatsapp" onclick="wa('${u.phone}','${t.title}')"><i class="fab fa-whatsapp"></i></button>` : '-'}</td></tr>`
+            }).join('') || '<tr><td colspan="4">No tasks found.</td></tr>'}
             </tbody></table></div>`;
-        } else if(v === 'tasks') {
-            mount.innerHTML = `<div class="panel"><table><thead><tr><th>Task</th><th>Staff</th><th>Action</th></tr></thead><tbody>
-            ${state.tasks.map(t => `<tr><td>${t.title}</td><td>${state.users.find(u=>u.id===t.userId)?.name || '-'}</td><td><button onclick="toggleDone('${t.id}')">${t.status==='DONE'?'✅':'⭕'}</button>
-            ${t.status!=='DONE' && state.users.find(u=>u.id===t.userId)?.phone ? `<button class="btn-whatsapp" onclick="wa('${state.users.find(u=>u.id===t.userId).phone}', '${t.title}')"><i class="fab fa-whatsapp"></i></button>` : ''}</td></tr>`).join('')}
+        }
+        else if(v === 'staff') {
+            mount.innerHTML = `<div class="panel"><h3>Add New Staff</h3><input id="ns-name" placeholder="Full Name"><input id="ns-email" placeholder="Staff Email"><input id="ns-pass" type="password" placeholder="Password"><input id="ns-phone" placeholder="WhatsApp (91...)"><button class="btn btn-primary" onclick="addStaff()">Register Staff</button><hr>
+            <table><thead><tr><th>Name</th><th>Email</th><th>Phone</th></tr></thead><tbody>
+            ${state.users.map(u => `<tr><td>${u.name}</td><td>${u.email}</td><td>${u.phone||'-'}</td></tr>`).join('')}
             </tbody></table></div>`;
-        } else if(v === 'staff') {
-            mount.innerHTML = `<div class="panel"><h3>Staff List</h3><table><thead><tr><th>Name</th><th>Phone</th></tr></thead><tbody>
-            ${state.users.map(u => `<tr><td>${u.name}</td><td>${u.phone || '-'}</td></tr>`).join('')}
-            </tbody></table></div>`;
-        } else if(v === 'settings') {
-            mount.innerHTML = `<div class="panel"><label>Wallpaper URL</label><input id="wal-url" value="${state.settings.wallpaper}"><button class="btn btn-primary" onclick="state.settings.wallpaper=document.getElementById('wal-url').value;save();location.reload();">Apply Wallpaper</button></div>`;
+        }
+        else if(v === 'settings') {
+            mount.innerHTML = `<div class="panel"><h3>Appearance</h3><label>Wallpaper URL</label><input id="wal-url" value="${state.settings.wallpaper}"><button class="btn btn-primary" style="width:100%" onclick="state.settings.wallpaper=document.getElementById('wal-url').value;save();location.reload();">Apply Theme</button><hr><button class="btn btn-danger" style="width:100%" onclick="if(confirm('Wipe All Local Data?')){localStorage.clear();location.reload();}">Factory Reset App</button></div>`;
         }
     }
 
-    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    // ==========================================
+    // 4. LOGIC
+    // ==========================================
+    function nav(v) { state.settings.view = v; save(); render(); }
+    function openTaskModal() {
+        document.getElementById('f-t-user').innerHTML = state.users.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+        document.getElementById('modal-task').classList.add('active');
+    }
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-
-    function saveRecurring() {
-        state.recurringTasks.push({ id: 'r'+Date.now(), title: document.getElementById('f-r-title').value, lastRun: '' });
-        save(); closeModal('modal-recurring'); render();
+    
+    function saveTask() {
+        state.tasks.unshift({id:'t'+Date.now(), title:document.getElementById('f-t-title').value, userId:document.getElementById('f-t-user').value, date:document.getElementById('f-t-date').value, status:'TODO'});
+        save(); closeModal('modal-task'); render();
     }
 
-    function saveMaster() {
-        state.masterTasks.push({ id: 'm'+Date.now(), title: document.getElementById('f-m-title').value });
-        save(); closeModal('modal-master'); render();
-    }
-
-    function applyTemplate(id) {
-        const m = state.masterTasks.find(x => x.id === id);
-        state.tasks.unshift({ id: 't'+Date.now(), title: m.title, userId: 'u1', status: 'TODO' });
-        save(); nav('tasks');
+    function addStaff() {
+        const u = { id:'u'+Date.now(), name:document.getElementById('ns-name').value, email:document.getElementById('ns-email').value, password:document.getElementById('ns-pass').value, phone:document.getElementById('ns-phone').value, role:'Staff', profileImg:'' };
+        state.users.push(u); save(); render();
     }
 
     function toggleDone(id) { const t=state.tasks.find(x=>x.id===id); if(t) t.status=t.status==='DONE'?'TODO':'DONE'; save(); render(); }
-    function wa(p, t) { window.open(`https://wa.me/${p.replace(/\D/g,'')}?text=${encodeURIComponent('Task Reminder: '+t)}`, '_blank'); }
+    function wa(p, t) { window.open(`https://wa.me/${p.replace(/\D/g,'')}?text=${encodeURIComponent('Hello, reminder for pending task: '+t)}`, '_blank'); }
+    function clearNotifs() { state.notifications.forEach(n=>n.read=true); save(); render(); }
+    function showToast(m) { const t=document.getElementById('toast'); t.textContent=m; t.style.display='block'; setTimeout(()=>t.style.display='none',3000); }
+    function downloadReport() { const ws=XLSX.utils.json_to_sheet(state.tasks); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Tasks"); XLSX.writeFile(wb, "PharmacyReport.xlsx"); }
+    function uploadExcel(e) { const f=e.target.files[0]; const r=new FileReader(); r.onload=(ev)=>{ const d=XLSX.read(ev.target.result,{type:'binary'}); XLSX.utils.sheet_to_json(d.Sheets[d.SheetNames[0]]).forEach(row=>{ state.tasks.unshift({id:'t'+Date.now()+Math.random(), title:row.TaskName, userId:'u1', status:'TODO'}); }); save(); render(); }; r.readAsBinaryString(f); }
+
+    function runEngines() {
+        const todayStr = new Date().toDateString();
+        let changed = false;
+        state.recurringTasks.forEach(r => {
+            if (r.lastRun !== todayStr) {
+                state.tasks.unshift({ id: 'rt'+Date.now(), title: "[AUTO] "+r.title, userId: 'u1', status: 'TODO', date: new Date().toISOString().split('T')[0] });
+                r.lastRun = todayStr;
+                state.notifications.unshift({ text: "Generated: "+r.title, read: false });
+                changed = true;
+            }
+        });
+        if(changed) save();
+    }
 </script>
 </body>
 </html>
