@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pharmacy Management v9.1</title>
+    <title>Pharmacy Management v9.1 - Final</title>
     <!-- Libraries -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -20,34 +20,14 @@
             background-size: cover; background-position: center; transition: 0.3s;
         }
 
-        /* -----------------------
-           LOGIN SCREEN STYLES
-        ----------------------- */
-        .login-screen { 
-            height: 100vh; width: 100vw; display: grid; place-items: center; 
-            background: #f1f5f9; position: fixed; inset: 0; z-index: 9999; 
-            background-image: linear-gradient(135deg, #10b981 0%, #064e3b 100%);
-        }
-        .login-card { 
-            background: white; padding: 40px; border-radius: 24px; 
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2); 
-            width: 100%; max-width: 400px; text-align: center; 
-        }
+        /* Login Screen */
+        .login-screen { height: 100vh; width: 100vw; display: grid; place-items: center; background: #f1f5f9; position: fixed; inset: 0; z-index: 9999; background-image: linear-gradient(135deg, #10b981 0%, #064e3b 100%); }
+        .login-card { background: white; padding: 40px; border-radius: 24px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2); width: 100%; max-width: 400px; text-align: center; }
         .login-card h1 { color: var(--primary); margin: 0 0 5px; font-size: 1.8rem; }
-        .login-card p { color: var(--muted); margin-bottom: 25px; font-size: 0.9rem; }
-        .login-card input { 
-            width: 100%; padding: 14px; margin-bottom: 15px; 
-            border-radius: 12px; border: 1px solid var(--line); outline: none; font-size: 1rem;
-        }
-        .login-card .forgot-btn { 
-            display: block; margin-top: 10px; color: var(--muted); 
-            font-size: 0.8rem; text-decoration: none; cursor: pointer;
-        }
-        .login-card .forgot-btn:hover { color: var(--primary); }
+        .login-card input { width: 100%; padding: 14px; margin-bottom: 15px; border-radius: 12px; border: 1px solid var(--line); outline: none; font-size: 1rem; }
+        .forgot-btn { display: block; margin-top: 10px; color: var(--muted); font-size: 0.8rem; cursor: pointer; }
 
-        /* -----------------------
-           MAIN APP LAYOUT
-        ----------------------- */
+        /* Main Layout */
         .app-container { display: flex; height: 100vh; width: 100vw; background: rgba(255,255,255,0.85); backdrop-filter: blur(10px); }
         .sidebar { width: 260px; background: var(--sidebar); color: white; display: flex; flex-direction: column; flex-shrink: 0; }
         .sidebar-profile { padding: 30px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
@@ -58,9 +38,7 @@
         .main-content { flex: 1; padding: 30px; overflow-y: auto; }
         .panel { background: var(--card); border-radius: 16px; border: 1px solid var(--line); padding: 20px; box-shadow: var(--shadow); margin-bottom: 25px; }
         
-        /* -----------------------
-           UI COMPONENTS
-        ----------------------- */
+        /* Components */
         .profile-img { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); margin-bottom: 10px; }
         .btn { padding: 12px 20px; border-radius: 12px; font-weight: 600; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
         .btn-primary { background: var(--primary); color: white; }
@@ -83,7 +61,7 @@
 <div id="app-root"></div>
 <div id="toast"></div>
 
-<!-- Modal: Task -->
+<!-- Modal: New Task -->
 <div class="modal-overlay" id="modal-task">
     <div class="modal">
         <h2>Assign New Task</h2>
@@ -94,7 +72,7 @@
     </div>
 </div>
 
-<!-- Modal: User -->
+<!-- Modal: New User -->
 <div class="modal-overlay" id="modal-user">
     <div class="modal">
         <h2>Add Staff Member</h2>
@@ -108,10 +86,10 @@
 </div>
 
 <script>
-    // Configuration
+    // 1. CONFIGURATION
     const API_URL = "https://script.google.com/macros/s/AKfycbxJ9m1ZlRoLOVo_LZl4khk85D0Fv0ZV2bFndUAoiZ_vma61KcA8F6iz6zOU9N9pO188/exec";
-    const STORAGE_KEY = "PHARMACY_V9_1_PRO";
-    const RECOVERY_KEY = "PHARMA2024"; // Master key to reset password
+    const STORAGE_KEY = "PHARMACY_V9_FINAL_PRO";
+    const RECOVERY_KEY = "PHARMA2024";
 
     let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
         tasks: [],
@@ -134,105 +112,55 @@
         render();
     }
 
-    // -----------------------
-    // AUTHENTICATION LOGIC
-    // -----------------------
+    // 2. AUTHENTICATION
     function handleLogin() {
         const e = document.getElementById('l-email').value;
         const p = document.getElementById('l-pass').value;
         const user = state.users.find(u => u.email === e && u.password === p);
-        if(user) { 
-            state.session = user; 
-            save(); 
-            render(); 
-            showToast("Welcome back, " + user.name);
-        } else {
-            alert("Invalid Email or Password");
-        }
+        if(user) { state.session = user; save(); render(); } else alert("Invalid Credentials");
     }
 
     function handleForgotPassword() {
-        const email = prompt("Enter your registered email address:");
-        if(!email) return;
-        
+        const email = prompt("Enter registered email:");
         const user = state.users.find(u => u.email === email);
-        if(!user) return alert("Email not found in system.");
-
-        const key = prompt("Enter Master Recovery Key to reset password:");
-        if(key === RECOVERY_KEY) {
-            const newPass = prompt("Enter your NEW password:");
-            if(newPass) {
-                user.password = newPass;
-                save();
-                alert("Password reset successful! You can now login.");
-            }
-        } else {
-            alert("Invalid Recovery Key. Please contact the Software Developer.");
-        }
+        if(user && prompt("Enter Master Recovery Key:") === RECOVERY_KEY) {
+            const newP = prompt("Enter new password:");
+            if(newP) { user.password = newP; save(); alert("Password Reset Success!"); }
+        } else alert("Verification Failed");
     }
 
-    function logout() {
-        if(confirm("Confirm Logout?")) {
-            state.session = null;
-            save();
-            render();
-        }
-    }
-
+    function logout() { state.session = null; save(); render(); }
     function nav(v) { state.settings.view = v; save(); render(); }
 
-    // -----------------------
-    // RENDERING ENGINE
-    // -----------------------
+    // 3. RENDERING
     function render() {
         const root = document.getElementById('app-root');
-        
-        // Show Login Screen if no session
         if (!state.session) {
-            root.innerHTML = `
-                <div class="login-screen">
-                    <div class="login-card">
-                        <h1>💊 Pharmacy Task</h1>
-                        <p>Management Portal v9.1</p>
-                        <input type="email" id="l-email" placeholder="Email" value="admin@pharmacy.local">
-                        <input type="password" id="l-pass" placeholder="Password" value="123">
-                        <button class="btn btn-primary" style="width:100%" onclick="handleLogin()">Login to Dashboard</button>
-                        <span class="forgot-btn" onclick="handleForgotPassword()">Forgot Password?</span>
-                    </div>
-                </div>`;
+            root.innerHTML = `<div class="login-screen"><div class="login-card"><h1>💊 Pharmacy Task</h1><p>Portal Login</p><input id="l-email" placeholder="Email" value="admin@pharmacy.local"><input id="l-pass" type="password" placeholder="Password" value="123"><button class="btn btn-primary" style="width:100%" onclick="handleLogin()">Login</button><span class="forgot-btn" onclick="handleForgotPassword()">Forgot Password?</span></div></div>`;
             return;
         }
 
-        // Show Main App
         root.innerHTML = `
             <div class="app-container">
                 <aside class="sidebar">
                     <div class="sidebar-profile">
                         <img src="${state.session.profileImg || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}" class="profile-img">
-                        <div style="font-weight:bold; font-size:1.1rem;">${state.session.name}</div>
-                        <div style="font-size:0.75rem; color:#94a3b8; margin-top:4px;">${state.session.role || 'Pharmacist'}</div>
+                        <div style="font-weight:bold">${state.session.name}</div>
                     </div>
                     <nav class="nav-links">
                         <div class="nav-item ${state.settings.view==='dashboard'?'active':''}" onclick="nav('dashboard')"><i class="fas fa-th-large"></i> Dashboard</div>
                         <div class="nav-item ${state.settings.view==='tasks'?'active':''}" onclick="nav('tasks')"><i class="fas fa-list-ul"></i> Task List</div>
-                        <div class="nav-item ${state.settings.view==='staff'?'active':''}" onclick="nav('staff')"><i class="fas fa-users"></i> Staff Directory</div>
+                        <div class="nav-item ${state.settings.view==='staff'?'active':''}" onclick="nav('staff')"><i class="fas fa-users"></i> Staff</div>
                         <div class="nav-item ${state.settings.view==='settings'?'active':''}" onclick="nav('settings')"><i class="fas fa-cog"></i> Settings</div>
                     </nav>
-                    <div style="padding:20px; border-top: 1px solid rgba(255,255,255,0.1);">
-                        <button class="btn btn-danger" style="width:100%" onclick="logout()">
-                            <i class="fas fa-sign-out-alt"></i> Logout
-                        </button>
-                    </div>
+                    <div style="padding:20px"><button class="btn btn-danger" style="width:100%" onclick="logout()">Logout</button></div>
                 </aside>
                 <main class="main-content">
-                    <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px">
+                    <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
+                        <h1>${state.settings.view.toUpperCase()}</h1>
                         <div>
-                            <h1 style="margin:0; text-transform:uppercase; letter-spacing:1px;">${state.settings.view}</h1>
-                            <small class="muted">${new Date().toDateString()}</small>
-                        </div>
-                        <div>
-                            <button class="btn btn-primary" onclick="downloadReport()"><i class="fas fa-download"></i> Report</button>
-                            <button class="btn btn-primary" onclick="openTaskModal()"><i class="fas fa-plus"></i> New Task</button>
+                            <button class="btn btn-primary" onclick="downloadReport()">Export</button>
+                            <button class="btn btn-primary" onclick="openTaskModal()">+ New Task</button>
                         </div>
                     </header>
                     <div id="view-mount"></div>
@@ -244,97 +172,39 @@
     function renderView() {
         const mount = document.getElementById('view-mount');
         const v = state.settings.view;
-        
         if(v === 'dashboard') {
-            const pending = state.tasks.filter(t=>t.status!=='DONE').length;
-            mount.innerHTML = `
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px">
-                    <div class="panel"><span>Pending Tasks</span><h2 style="color:var(--danger)">${pending}</h2></div>
-                    <div class="panel"><span>Registered Staff</span><h2>${state.users.length}</h2></div>
-                    <div class="panel"><span>Excel Upload</span><br><input type="file" id="excel-up" style="font-size:0.7rem; margin-top:10px;" onchange="uploadExcel(event)"></div>
-                </div>
-                <div class="panel">
-                    <h3>Quick Notification Guide</h3>
-                    <p class="muted">To send a manual WhatsApp reminder, go to the <b>Task List</b> and click the WhatsApp icon next to any pending task.</p>
-                </div>`;
-        } 
-        else if(v === 'tasks') {
-            mount.innerHTML = `
-                <div class="panel">
-                    <table>
-                        <thead><tr><th>Description</th><th>Assigned To</th><th>Status</th><th>Notify</th></tr></thead>
-                        <tbody>${state.tasks.map(t => {
-                            const u = state.users.find(u=>u.id===t.userId);
-                            return `
-                            <tr>
-                                <td><b>${t.title}</b></td>
-                                <td>${u ? u.name : 'Unknown'}</td>
-                                <td>
-                                    <button class="btn" style="background:none; color:${t.status==='DONE'?'var(--primary)':'var(--muted)'}; font-size:1.2rem;" onclick="toggleDone('${t.id}')">
-                                        <i class="fas ${t.status==='DONE'?'fa-check-circle':'fa-circle'}"></i>
-                                    </button>
-                                </td>
-                                <td>
-                                    ${t.status!=='DONE' && u?.phone ? 
-                                    `<button class="btn btn-whatsapp" onclick="wa('${u.phone}', '${t.title}')"><i class="fab fa-whatsapp"></i> Nudge</button>` : '-'}
-                                </td>
-                            </tr>`;
-                        }).join('') || '<tr><td colspan="4">No tasks found.</td></tr>'}
-                        </tbody>
-                    </table>
-                </div>`;
-        } 
-        else if(v === 'staff') {
-            mount.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
-                    <h3>Staff Directory</h3>
-                    <button class="btn btn-primary" onclick="document.getElementById('modal-user').classList.add('active')">+ Add Staff</button>
-                </div>
-                <div class="panel">
-                    <table><thead><tr><th>Staff Name</th><th>Email Address</th><th>WhatsApp</th><th>Action</th></tr></thead>
-                    <tbody>${state.users.map(u => `
-                        <tr>
-                            <td><b>${u.name}</b></td>
-                            <td>${u.email}</td>
-                            <td>${u.phone || '-'}</td>
-                            <td><button onclick="deleteUser('${u.id}')" style="border:none; background:none; color:var(--danger); cursor:pointer;"><i class="fas fa-trash"></i></button></td>
-                        </tr>`).join('')}
-                    </tbody></table>
-                </div>`;
-        } 
-        else if(v === 'settings') {
-            mount.innerHTML = `
-                <div class="panel" style="max-width:500px">
-                    <h3>Account Security</h3>
-                    <label>New Password</label><input type="password" id="new-pw" placeholder="Enter new password">
-                    <button class="btn btn-primary" style="width:100%" onclick="changePw()">Save New Password</button>
-                    <hr style="margin:30px 0; border:none; border-top:1px solid var(--line);">
-                    <h3>Visual Customization</h3>
-                    <label>Profile Photo (URL)</label><input id="p-img" placeholder="Paste image link here" value="${state.session.profileImg}">
-                    <label>Dashboard Wallpaper (URL)</label><input id="w-img" placeholder="Paste image link here" value="${state.settings.wallpaper}">
-                    <button class="btn btn-primary" style="width:100%" onclick="updateStyle()">Apply Appearance</button>
-                </div>`;
+            mount.innerHTML = `<div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px"><div class="panel"><span>Pending</span><h2>${state.tasks.filter(t=>t.status!=='DONE').length}</h2></div><div class="panel"><span>Staff</span><h2>${state.users.length}</h2></div><div class="panel"><span>Excel Import</span><br><input type="file" style="font-size:0.7rem" onchange="uploadExcel(event)"></div></div>`;
+        } else if(v === 'tasks') {
+            mount.innerHTML = `<div class="panel"><table><thead><tr><th>Task</th><th>Staff</th><th>Action</th></tr></thead><tbody>${state.tasks.map(t => `<tr><td>${t.title}</td><td>${state.users.find(u=>u.id===t.userId)?.name || 'Unassigned'}</td><td><button onclick="toggleDone('${t.id}')">${t.status==='DONE'?'✅':'⭕'}</button> ${t.status!=='DONE' && state.users.find(u=>u.id===t.userId)?.phone ? `<button class="btn-whatsapp" onclick="wa('${state.users.find(u=>u.id===t.userId).phone}', '${t.title}')"><i class="fab fa-whatsapp"></i></button>` : ''}</td></tr>`).join('')}</tbody></table></div>`;
+        } else if(v === 'staff') {
+            mount.innerHTML = `<button class="btn btn-primary" style="margin-bottom:15px" onclick="document.getElementById('modal-user').classList.add('active')">+ Add Staff</button><div class="panel"><table><thead><tr><th>Name</th><th>Email</th><th>Action</th></tr></thead><tbody>${state.users.map(u => `<tr><td>${u.name}</td><td>${u.email}</td><td><button onclick="deleteUser('${u.id}')" style="color:red; background:none; border:none; cursor:pointer;"><i class="fas fa-trash"></i></button></td></tr>`).join('')}</tbody></table></div>`;
+        } else if(v === 'settings') {
+            mount.innerHTML = `<div class="panel" style="max-width:500px"><h3>Security</h3><input type="password" id="new-pw" placeholder="New Password"><button class="btn btn-primary" onclick="changePw()">Update</button><hr><h3>Theme</h3><input id="p-img" placeholder="Profile Image URL" value="${state.session.profileImg}"><input id="w-img" placeholder="Wallpaper URL" value="${state.settings.wallpaper}"><button class="btn btn-primary" onclick="updateStyle()">Save</button></div>`;
         }
     }
 
-    // -----------------------
-    // UTILITY FUNCTIONS
-    // -----------------------
+    // 4. LOGIC
     function openTaskModal() {
         document.getElementById('f-t-user').innerHTML = state.users.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
         document.getElementById('modal-task').classList.add('active');
     }
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-
     function saveTask() {
-        const title = document.getElementById('f-t-title').value;
-        const uid = document.getElementById('f-t-user').value;
-        if(!title) return;
-        state.tasks.unshift({id:'t'+Date.now(), title, userId: uid, status:'TODO'});
+        state.tasks.unshift({id:'t'+Date.now(), title:document.getElementById('f-t-title').value, userId:document.getElementById('f-t-user').value, status:'TODO'});
         save(); closeModal('modal-task'); render();
     }
-
     function saveUser() {
-        const u = {
-            id:'u'+Date.now(), 
-            name: document.getElem
+        state.users.push({id:'u'+Date.now(), name:document.getElementById('f-u-name').value, email:document.getElementById('f-u-email').value, password:document.getElementById('f-u-pass').value, phone:document.getElementById('f-u-phone').value, profileImg: ''});
+        save(); closeModal('modal-user'); render();
+    }
+    function deleteUser(id) { if(id !== 'u1' && confirm("Delete?")) { state.users = state.users.filter(u=>u.id!==id); save(); render(); } }
+    function toggleDone(id) { const t=state.tasks.find(x=>x.id===id); if(t) t.status=t.status==='DONE'?'TODO':'DONE'; save(); render(); }
+    function changePw() { const np=document.getElementById('new-pw').value; if(np) { const idx=state.users.findIndex(u=>u.id===state.session.id); state.users[idx].password=np; state.session.password=np; save(); alert("Success"); } }
+    function updateStyle() { state.session.profileImg=document.getElementById('p-img').value; state.settings.wallpaper=document.getElementById('w-img').value; save(); location.reload(); }
+    function downloadReport() { const ws=XLSX.utils.json_to_sheet(state.tasks); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Tasks"); XLSX.writeFile(wb, "Report.xlsx"); }
+    function uploadExcel(e) { const f=e.target.files[0]; const r=new FileReader(); r.onload=(ev)=>{ const d=XLSX.read(ev.target.result,{type:'binary'}); XLSX.utils.sheet_to_json(d.Sheets[d.SheetNames[0]]).forEach(row=>{ state.tasks.unshift({id:'t'+Date.now()+Math.random(), title:row.TaskName, userId:'u1', status:'TODO'}); }); save(); render(); }; r.readAsBinaryString(f); }
+    function wa(p, t) { window.open(`https://wa.me/${p.replace(/\D/g,'')}?text=${encodeURIComponent('Reminder: '+t)}`, '_blank'); }
+    function showToast(m) { const t=document.getElementById('toast'); t.textContent=m; t.style.display='block'; setTimeout(()=>t.style.display='none',3000); }
+</script>
+</body>
+</html>
