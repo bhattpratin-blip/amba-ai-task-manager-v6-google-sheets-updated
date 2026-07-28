@@ -114,7 +114,9 @@
                     };
                     state.tasks.unshift(newTask);
                     r.lastRun = now.toISOString();
-                    state.notifications.unshift({ text: `New ${r.freq} task: ${r.title}`, time: new Date().toLocaleTimeString(), read: false });
+                    const notifText = `New ${r.freq} task: ${r.title}`;
+                    state.notifications.unshift({ text: notifText, time: new Date().toLocaleTimeString(), read: false });
+                    sendBrowserNotif("New Task Assigned", notifText);
                     changed = true;
                 }
             });
@@ -137,7 +139,12 @@
                 }
             } catch(e) { console.log("Offline mode"); }
             
-            if(state.session) runAutomationEngine();
+            if(state.session) {
+                runAutomationEngine();
+                // Keep checking while the app stays open, so daily/weekly/monthly
+                // tasks and their notifications fire even if nobody reloads the page.
+                setInterval(runAutomationEngine, 60000);
+            }
             render();
         }
 
@@ -189,7 +196,13 @@
                     <main class="main-content">
                         <header class="top-bar">
                             <h1>${state.settings.view.toUpperCase()}</h1>
-                            ${isA ? `<button class="btn btn-p" onclick="openTaskModal()">+ New Task</button>` : ''}
+                            <div style="display:flex; gap:15px; align-items:center;">
+                                <div style="position:relative; cursor:pointer; font-size:1.3rem" onclick="nav('dashboard')">
+                                    <i class="fas fa-bell"></i>
+                                    ${state.notifications.filter(n=>!n.read).length ? `<span style="position:absolute; top:-6px; right:-8px; background:var(--d); color:white; font-size:0.65rem; padding:2px 6px; border-radius:10px;">${state.notifications.filter(n=>!n.read).length}</span>` : ''}
+                                </div>
+                                ${isA ? `<button class="btn btn-p" onclick="openTaskModal()">+ New Task</button>` : ''}
+                            </div>
                         </header>
                         <div id="view-mount"></div>
                     </main>
@@ -204,6 +217,10 @@
             const isA = state.session.role === 'Admin';
 
             if(v === 'dashboard') {
+                if (state.notifications.some(n => !n.read)) {
+                    state.notifications.forEach(n => n.read = true);
+                    save();
+                }
                 mount.innerHTML = `
                     <div class="stats-grid">
                         <div class="stat-card"><span>Pending Tasks</span><h2>${state.tasks.filter(t=>t.status==='TODO').length}</h2></div>
@@ -298,6 +315,11 @@
             else if(v === 'settings') {
                 mount.innerHTML = `
                 <div class="panel">
+                    <h3>Notifications</h3>
+                    <p>Get an alert on this device when a new automated task is assigned, even if this tab isn't open.</p>
+                    <button class="btn btn-p" onclick="requestNotifPermission()">${state.settings.browserNotif ? 'Notifications Enabled ✓' : 'Enable Browser Notifications'}</button>
+                </div>
+                <div class="panel">
                     <h3>My Profile</h3>
                     <input value="${state.session.name}" disabled>
                     <input value="${state.session.email}" disabled>
@@ -380,6 +402,23 @@
             if(!name || !email || !password) return;
             state.users.push({ id: 'u1', name, email, password, role: 'Admin' });
             save(); render();
+        }
+
+        function requestNotifPermission() {
+            if (!("Notification" in window)) return alert("This browser doesn't support notifications");
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    state.settings.browserNotif = true;
+                    save(); render();
+                    showToast("Browser notifications enabled");
+                }
+            });
+        }
+
+        function sendBrowserNotif(title, body) {
+            if (state.settings.browserNotif && "Notification" in window && Notification.permission === "granted") {
+                new Notification(title, { body });
+            }
         }
 
         function updatePassword() {
