@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pharmacy PRO Management v10.1</title>
+    <title>Amba Pharmacy Management</title>
     <!-- Libraries -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -11,14 +11,13 @@
     
     <style>
         :root { 
-            --p: #10b981; --bg: #f8fafc; --c: #ffffff; --t: #0f172a; 
-            --m: #64748b; --l: #e2e8f0; --s: #064e3b; --d: #ef4444; 
+            --p: #1e4b82; --bg: #f8fafc; --c: #ffffff; --t: #0f172a; 
+            --m: #64748b; --l: #e2e8f0; --s: #2c3e50; --d: #ef4444; 
             --shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); 
         }
-        body { margin: 0; background: var(--bg); color: var(--t); font-family: 'Inter', sans-serif; overflow: hidden; background-size: cover; background-position: center; transition: 0.3s; }
-        .blur-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.8); backdrop-filter: blur(8px); z-index: -1; }
-        .auth-screen { height: 100vh; width: 100vw; display: grid; place-items: center; background: linear-gradient(135deg, #10b981 0%, #064e3b 100%); position: fixed; inset: 0; z-index: 9999; }
-        .auth-card { background: white; padding: 40px; border-radius: 24px; width: 100%; max-width: 400px; text-align: center; box-shadow: var(--shadow); }
+        body { margin: 0; background: var(--bg); color: var(--t); font-family: 'Inter', sans-serif; overflow: hidden; transition: 0.3s; }
+        .auth-screen { height: 100vh; width: 100vw; display: grid; place-items: center; background: #f0f2f5; position: fixed; inset: 0; z-index: 9999; }
+        .auth-card { background: white; padding: 40px; border-radius: 24px; width: 100%; max-width: 450px; text-align: center; box-shadow: var(--shadow); }
         .app-container { display: flex; height: 100vh; width: 100vw; }
         .sidebar { width: 260px; background: var(--s); color: white; display: flex; flex-direction: column; flex-shrink: 0; }
         .sidebar-profile { padding: 25px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
@@ -40,12 +39,13 @@
         .modal { background: var(--c); padding: 30px; border-radius: 24px; width: 450px; box-shadow: var(--shadow); }
         input, select { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 12px; border: 1px solid var(--l); outline: none; background: var(--bg); box-sizing: border-box; }
         #toast { position: fixed; bottom: 20px; right: 20px; background: #333; color: white; padding: 15px 25px; border-radius: 10px; display: none; z-index: 3000; }
-        .notif-bell { position: relative; cursor: pointer; font-size: 1.4rem; }
-        .notif-badge { position: absolute; top: -5px; right: -5px; background: var(--d); color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 10px; }
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: bold; }
+        .bg-daily { background: #e0f2fe; color: #0369a1; }
+        .bg-weekly { background: #fef9c3; color: #a16207; }
+        .bg-monthly { background: #dcfce7; color: #15803d; }
     </style>
 </head>
 <body onload="init()">
-    <div class="blur-overlay"></div>
     <div id="app-root"></div>
     <div id="toast"></div>
 
@@ -54,14 +54,12 @@
         <div class="modal">
             <h3>Assign New Task</h3>
             <input id="f-t-title" placeholder="Task description...">
+            <label><small>Due Date</small></label>
             <input id="f-t-date" type="date">
-            <select id="f-t-pri">
-                <option value="NORMAL">Normal Priority</option>
-                <option value="HIGH">High Priority</option>
-            </select>
+            <label><small>Assign To</small></label>
             <select id="f-t-user"></select>
             <div style="display:flex; gap:10px">
-                <button class="btn btn-p" style="flex:1" onclick="saveTask()">Save Task</button>
+                <button class="btn btn-p" style="flex:1" onclick="saveTask()">Create Task</button>
                 <button class="btn" style="flex:1; background:#eee" onclick="closeModal('modal-task')">Cancel</button>
             </div>
         </div>
@@ -69,38 +67,12 @@
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbxJ9m1ZlRoLOVo_LZl4khk85D0Fv0ZV2bFndUAoiZ_vma61KcA8F6iz6zOU9N9pO188/exec";
-        const STORAGE_KEY = "PHARMACY_V10_PRO";
+        const STORAGE_KEY = "AMBA_PHARMACY_V10";
 
         let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
-            tasks: [], users: [], masterTasks: [], recurringTasks: [], notifications: [], session: null,
-            settings: { darkMode: false, sync: true, view: 'dashboard', wallpaper: '', browserNotif: false }
+            tasks: [], users: [], recurringTasks: [], notifications: [], session: null,
+            settings: { sync: true, view: 'dashboard' }
         };
-
-        function mergeById(serverList, localList) {
-            const map = {};
-            (serverList || []).forEach(item => { if (item && item.id != null) map[item.id] = item; });
-            (localList || []).forEach(item => { if (item && item.id != null) map[item.id] = item; });
-            return Object.values(map);
-        }
-
-        function applyServerData(server) {
-            if (!server || !Array.isArray(server.users)) return false;
-            state.users = mergeById(server.users, state.users);
-            state.tasks = mergeById(server.tasks, state.tasks);
-            state.masterTasks = mergeById(server.masterTasks, state.masterTasks);
-            state.recurringTasks = mergeById(server.recurringTasks, state.recurringTasks);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-            return true;
-        }
-
-        async function pullFromServer() {
-            if (!state.settings.sync) return false;
-            try {
-                const res = await fetch(API_URL);
-                const server = await res.json();
-                return applyServerData(server);
-            } catch (err) { return false; }
-        }
 
         const save = () => {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -110,77 +82,117 @@
             }
         };
 
+        // --- AUTOMATION ENGINE ---
+        function runAutomationEngine() {
+            const now = new Date();
+            const todayStr = now.toDateString();
+            let changed = false;
+
+            state.recurringTasks.forEach(r => {
+                let shouldTrigger = false;
+                const last = r.lastRun ? new Date(r.lastRun) : null;
+
+                if (!last) {
+                    shouldTrigger = true;
+                } else {
+                    const diffDays = Math.floor((now - last) / (1000 * 60 * 60 * 24));
+                    
+                    if (r.freq === 'DAILY' && todayStr !== last.toDateString()) shouldTrigger = true;
+                    if (r.freq === 'WEEKLY' && diffDays >= 7) shouldTrigger = true;
+                    if (r.freq === 'MONTHLY' && (now.getMonth() !== last.getMonth() || now.getFullYear() !== last.getFullYear())) shouldTrigger = true;
+                }
+
+                if (shouldTrigger) {
+                    const newTask = { 
+                        id: 'auto_'+Date.now()+'_'+Math.random().toString(36).substr(2, 5), 
+                        title: `[AUTO] ${r.title}`, 
+                        userId: r.assignedTo || state.users[0]?.id, 
+                        status: 'TODO', 
+                        date: now.toISOString().split('T')[0],
+                        isAuto: true,
+                        freq: r.freq
+                    };
+                    state.tasks.unshift(newTask);
+                    r.lastRun = now.toISOString();
+                    state.notifications.unshift({ text: `New ${r.freq} task: ${r.title}`, time: new Date().toLocaleTimeString(), read: false });
+                    changed = true;
+                }
+            });
+
+            if(changed) {
+                save();
+                render();
+            }
+        }
+
         async function init() {
-            await pullFromServer();
-            if(state.settings.wallpaper) document.body.style.backgroundImage = `url(${state.settings.wallpaper})`;
+            // Try to pull latest data
+            try {
+                const res = await fetch(API_URL);
+                const server = await res.json();
+                if(server && server.users) {
+                    state.users = server.users;
+                    state.tasks = server.tasks || state.tasks;
+                    state.recurringTasks = server.recurringTasks || state.recurringTasks;
+                }
+            } catch(e) { console.log("Offline mode"); }
+            
+            if(state.session) runAutomationEngine();
             render();
         }
 
         function handleLogin() {
             const e = document.getElementById('l-email').value.trim().toLowerCase();
             const p = document.getElementById('l-pass').value;
-            const u = state.users.find(x => String(x.email).trim().toLowerCase() === e && String(x.password) === String(p));
-            if(u) { state.session = u; save(); render(); } else alert("Invalid Login");
+            const u = state.users.find(x => x.email.toLowerCase() === e && String(x.password) === String(p));
+            if(u) { state.session = u; runAutomationEngine(); save(); render(); } else alert("Invalid Credentials");
         }
-
-        function nav(v) { state.settings.view = v; render(); }
 
         function render() {
             const root = document.getElementById('app-root');
             
-            // 1. ADMIN SETUP SCREEN
             if (state.users.length === 0) {
-                root.innerHTML = `<div class="auth-screen"><div class="auth-card"><h2>Admin Setup</h2><input id="s-name" placeholder="Name"><input id="s-email" placeholder="Email"><input id="s-pass" type="password" placeholder="Password"><button class="btn btn-p" style="width:100%" onclick="handleSetup()">Initialize</button></div></div>`;
+                root.innerHTML = `<div class="auth-screen"><div class="auth-card"><h2>System Setup</h2><input id="s-name" placeholder="Admin Name"><input id="s-email" placeholder="Admin Email"><input id="s-pass" type="password" placeholder="Password"><button class="btn btn-p" style="width:100%" onclick="setupAdmin()">Setup</button></div></div>`;
                 return;
             }
 
-            // 2. LOGIN SCREEN (LOGO RESTORED)
             if (!state.session) {
                 root.innerHTML = `
                 <div class="auth-screen">
                     <div class="auth-card">
-                        <!-- LOGO RESTORED HERE -->
-                        <div style="background:var(--p); width:80px; height:80px; border-radius:20px; display:grid; place-items:center; margin: 0 auto 20px;">
-                            <i class="fas fa-prescription-bottle-medical" style="color:white; font-size:40px;"></i>
-                        </div>
-                        <h2 style="margin-bottom:20px;">Pharmacy Login</h2>
-                        <input id="l-email" placeholder="Email">
+                        <img src="logo.png" alt="Amba Pharmacy Logo" style="max-width:300px; margin-bottom:30px;">
+                        <input id="l-email" placeholder="Email Address">
                         <input id="l-pass" type="password" placeholder="Password">
-                        <button class="btn btn-p" style="width:100%" onclick="handleLogin()">Login</button>
+                        <button class="btn btn-p" style="width:100%" onclick="handleLogin()">Login to Dashboard</button>
                     </div>
                 </div>`;
                 return;
             }
 
-            // 3. MAIN APP INTERFACE
             const isA = state.session.role === 'Admin';
             root.innerHTML = `
                 <div class="app-container">
                     <aside class="sidebar">
                         <div class="sidebar-profile">
-                            <img src="${state.session.profileImg || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}" class="profile-img"><br>
+                            <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="profile-img"><br>
                             <b>${state.session.name}</b><br><small>${state.session.role}</small>
                         </div>
                         <nav class="nav-links">
-                            <div class="nav-item ${state.settings.view==='dashboard'?'active':''}" onclick="nav('dashboard')"><i class="fas fa-home"></i> Dashboard</div>
-                            <div class="nav-item ${state.settings.view==='tasks'?'active':''}" onclick="nav('tasks')"><i class="fas fa-list-check"></i> Tasks</div>
-                            ${isA ? `<div class="nav-item ${state.settings.view==='staff'?'active':''}" onclick="nav('staff')"><i class="fas fa-users"></i> Staff</div>` : ''}
+                            <div class="nav-item ${state.settings.view==='dashboard'?'active':''}" onclick="nav('dashboard')"><i class="fas fa-chart-line"></i> Dashboard</div>
+                            <div class="nav-item ${state.settings.view==='tasks'?'active':''}" onclick="nav('tasks')"><i class="fas fa-tasks"></i> Tasks</div>
                             ${isA ? `<div class="nav-item ${state.settings.view==='automation'?'active':''}" onclick="nav('automation')"><i class="fas fa-robot"></i> Automations</div>` : ''}
-                            <div class="nav-item ${state.settings.view==='settings'?'active':''}" onclick="nav('settings')"><i class="fas fa-cog"></i> Settings</div>
+                            ${isA ? `<div class="nav-item ${state.settings.view==='staff'?'active':''}" onclick="nav('staff')"><i class="fas fa-users-cog"></i> Manage Staff</div>` : ''}
                         </nav>
-                        <div style="margin-top:auto; padding:20px"><button class="btn btn-danger" style="width:100%; color:white; background:var(--d)" onclick="state.session=null;save();render();">Logout</button></div>
+                        <div style="margin-top:auto; padding:20px"><button class="btn" style="width:100%; background:rgba(255,255,255,0.1); color:white;" onclick="logout()">Logout</button></div>
                     </aside>
                     <main class="main-content">
                         <header class="top-bar">
                             <h1>${state.settings.view.toUpperCase()}</h1>
-                            ${isA ? `<button class="btn btn-p" onclick="document.getElementById('modal-task').classList.add('active')">+ New Task</button>` : ''}
+                            ${isA ? `<button class="btn btn-p" onclick="openTaskModal()">+ New Task</button>` : ''}
                         </header>
                         <div id="view-mount"></div>
                     </main>
                 </div>`;
-
-            const userSelect = document.getElementById('f-t-user');
-            if(userSelect) userSelect.innerHTML = state.users.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
 
             renderView();
         }
@@ -193,104 +205,166 @@
             if(v === 'dashboard') {
                 mount.innerHTML = `
                     <div class="stats-grid">
-                        <div class="stat-card"><span>Active Tasks</span><h2>${state.tasks.filter(t=>t.status!=='DONE').length}</h2></div>
-                        <div class="stat-card"><span>Staff Count</span><h2>${state.users.length}</h2></div>
-                        <div class="stat-card"><span>My Role</span><p>${state.session.role}</p></div>
-                        <div class="stat-card"><span>Sync</span><p>${state.settings.sync?'Online':'Offline'}</p></div>
+                        <div class="stat-card"><span>Pending Tasks</span><h2>${state.tasks.filter(t=>t.status==='TODO').length}</h2></div>
+                        <div class="stat-card"><span>Active Staff</span><h2>${state.users.length}</h2></div>
+                        <div class="stat-card"><span>Completed Today</span><h2>${state.tasks.filter(t=>t.status==='DONE' && t.date === new Date().toISOString().split('T')[0]).length}</h2></div>
+                        <div class="stat-card"><span>Status</span><p style="color:green">● System Live</p></div>
+                    </div>
+                    <div class="panel">
+                        <h3>Recent Notifications</h3>
+                        ${state.notifications.slice(0,5).map(n => `<div style="padding:10px; border-bottom:1px solid #eee"><small>${n.time}</small> ${n.text}</div>`).join('') || 'No recent activity'}
                     </div>`;
             } 
             else if(v === 'tasks') {
-                mount.innerHTML = `<div class="panel"><table><thead><tr><th>Task</th><th>Assigned To</th><th>Status</th><th>Action</th></tr></thead><tbody>
-                ${state.tasks.map(t => `<tr><td><b>${t.title}</b></td><td>${state.users.find(u=>u.id===t.userId)?.name || 'N/A'}</td><td>${t.status}</td><td><button onclick="toggleDone('${t.id}')">Done</button></td></tr>`).join('')}
-                </tbody></table></div>`;
-            }
-            else if(v === 'staff' && isA) {
-                mount.innerHTML = `<div class="panel"><h3>Add Staff</h3>
-                    <input id="st-name" placeholder="Name"><input id="st-email" placeholder="Email"><input id="st-pass" type="password" placeholder="Password"><button class="btn btn-p" onclick="addStaff()">Add</button>
-                    <hr><h3>Current Staff</h3>
-                    ${state.users.map(u => `<div style="padding:10px; border-bottom:1px solid #eee">${u.name} (${u.role})</div>`).join('')}
+                const list = isA ? state.tasks : state.tasks.filter(t => t.userId === state.session.id);
+                mount.innerHTML = `<div class="panel">
+                    <table>
+                        <thead><tr><th>Task Name</th><th>Frequency</th><th>Assigned To</th><th>Status</th><th>Action</th></tr></thead>
+                        <tbody>
+                            ${list.map(t => `
+                            <tr>
+                                <td><b>${t.title}</b><br><small>${t.date}</small></td>
+                                <td>${t.isAuto ? `<span class="badge bg-${t.freq.toLowerCase()}">${t.freq}</span>` : '<span class="badge" style="background:#eee">ONCE</span>'}</td>
+                                <td>${state.users.find(u=>u.id===t.userId)?.name || 'Deleted User'}</td>
+                                <td><span style="color:${t.status==='DONE'?'green':'orange'}">${t.status}</span></td>
+                                <td>
+                                    ${t.status === 'TODO' ? `<button class="btn-wa" style="background:#eee; color:#333; margin-right:5px;" onclick="markDone('${t.id}')">Complete</button>` : ''}
+                                    ${isA ? `<button onclick="deleteTask('${t.id}')" style="color:red; background:none; border:none; cursor:pointer">Delete</button>` : ''}
+                                </td>
+                            </tr>`).join('')}
+                        </tbody>
+                    </table>
                 </div>`;
             }
-            // --- SETTINGS VIEW FIXED AND ADDED ---
-            else if(v === 'settings') {
+            else if(v === 'automation') {
                 mount.innerHTML = `
                 <div class="panel">
-                    <h3>App Settings</h3>
-                    <label>Wallpaper URL</label>
-                    <input id="set-wall" placeholder="Link to background image" value="${state.settings.wallpaper || ''}">
-                    
-                    <label>Profile Image URL</label>
-                    <input id="set-img" placeholder="Link to profile photo" value="${state.session.profileImg || ''}">
-
-                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;">
-                        <input type="checkbox" id="set-sync" ${state.settings.sync ? 'checked' : ''} style="width:auto; margin:0;">
-                        <span>Enable Cloud Sync</span>
+                    <h3>Create Recurring Task</h3>
+                    <input id="ar-tit" placeholder="Automation Name (e.g. Daily Cleaning)">
+                    <select id="ar-freq">
+                        <option value="DAILY">Repeat Daily</option>
+                        <option value="WEEKLY">Repeat Weekly</option>
+                        <option value="MONTHLY">Repeat Monthly</option>
+                    </select>
+                    <label><small>Assign To</small></label>
+                    <select id="ar-user">
+                        ${state.users.map(u => `<option value="${u.id}">${u.name}</option>`).join('')}
+                    </select>
+                    <button class="btn btn-p" onclick="addAutomation()">Start Automation</button>
+                </div>
+                <div class="panel">
+                    <h3>Active Automations</h3>
+                    ${state.recurringTasks.map(r => `
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-bottom:1px solid #eee">
+                            <div>
+                                <b>${r.title}</b> <span class="badge bg-${r.freq.toLowerCase()}">${r.freq}</span><br>
+                                <small>Assigned to: ${state.users.find(u=>u.id===r.assignedTo)?.name}</small>
+                            </div>
+                            <button onclick="removeAutomation('${r.id}')" style="color:red; border:none; background:none; cursor:pointer"><i class="fas fa-trash"></i></button>
+                        </div>
+                    `).join('') || '<p>No automations set up.</p>'}
+                </div>`;
+            }
+            else if(v === 'staff') {
+                mount.innerHTML = `
+                <div class="panel">
+                    <h3>Add New Staff</h3>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px">
+                        <input id="st-name" placeholder="Full Name">
+                        <input id="st-email" placeholder="Email">
+                        <input id="st-pass" type="password" placeholder="Password">
+                        <select id="st-role"><option value="Staff">Staff</option><option value="Admin">Admin</option></select>
                     </div>
-
-                    <button class="btn btn-p" onclick="updateSettings()">Save Changes</button>
+                    <button class="btn btn-p" onclick="addStaff()">Add Staff Member</button>
+                </div>
+                <div class="panel">
+                    <h3>Staff Directory</h3>
+                    <table>
+                        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Action</th></tr></thead>
+                        <tbody>
+                            ${state.users.map(u => `
+                                <tr>
+                                    <td>${u.name}</td>
+                                    <td>${u.email}</td>
+                                    <td>${u.role}</td>
+                                    <td>${u.id !== state.session.id ? `<button onclick="deleteStaff('${u.id}')" style="color:red; background:none; border:none; cursor:pointer">Remove</button>` : '<i>Self</i>'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
                 </div>`;
             }
         }
 
-        // --- ACTION FUNCTIONS ---
-        function updateSettings() {
-            const wall = document.getElementById('set-wall').value;
-            const img = document.getElementById('set-img').value;
-            const sync = document.getElementById('set-sync').checked;
-
-            state.settings.wallpaper = wall;
-            state.settings.sync = sync;
-            state.session.profileImg = img;
-            
-            // Update the actual user in the list too
-            const userIndex = state.users.findIndex(u => u.id === state.session.id);
-            state.users[userIndex].profileImg = img;
-
-            if(wall) document.body.style.backgroundImage = `url(${wall})`;
-            else document.body.style.backgroundImage = 'none';
-
-            save();
-            showToast("Settings Updated");
-            render();
+        // --- CORE FUNCTIONS ---
+        function nav(v) { state.settings.view = v; render(); }
+        
+        function openTaskModal() {
+            document.getElementById('f-t-user').innerHTML = state.users.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+            document.getElementById('modal-task').classList.add('active');
         }
 
-        function handleSetup() {
-            const name = document.getElementById('s-name').value;
-            const email = document.getElementById('s-email').value;
-            const pass = document.getElementById('s-pass').value;
-            if(!name || !email || !pass) return;
-            const u = { id: 'u1', name, email, password: pass, role: 'Admin', profileImg: '' };
-            state.users.push(u); state.session = u; save(); render();
-        }
-
-        function addStaff() {
-            const name = document.getElementById('st-name').value;
-            const email = document.getElementById('st-email').value;
-            const pass = document.getElementById('st-pass').value;
-            state.users.push({ id: 'u'+Date.now(), name, email, password: pass, role: 'Staff', profileImg: '' });
-            save(); render();
-        }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
         function saveTask() {
             const title = document.getElementById('f-t-title').value;
-            const uid = document.getElementById('f-t-user').value;
-            if(!title) return;
-            state.tasks.unshift({ id: 't'+Date.now(), title, userId: uid, status: 'TODO', date: document.getElementById('f-t-date').value });
+            const userId = document.getElementById('f-t-user').value;
+            const date = document.getElementById('f-t-date').value;
+            if(!title) return alert("Enter task name");
+            state.tasks.unshift({ id: 't'+Date.now(), title, userId, date, status: 'TODO', isAuto: false });
             save(); closeModal('modal-task'); render();
         }
 
-        function toggleDone(id) {
+        function markDone(id) {
             const t = state.tasks.find(x => x.id === id);
             if(t) t.status = 'DONE';
             save(); render();
         }
 
-        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-        function showToast(m) { 
-            const t = document.getElementById('toast'); 
-            t.innerText = m; t.style.display = 'block'; 
-            setTimeout(() => t.style.display='none', 3000); 
+        function deleteTask(id) {
+            state.tasks = state.tasks.filter(t => t.id !== id);
+            save(); render();
         }
+
+        function addAutomation() {
+            const title = document.getElementById('ar-tit').value;
+            const freq = document.getElementById('ar-freq').value;
+            const assignedTo = document.getElementById('ar-user').value;
+            if(!title) return;
+            state.recurringTasks.push({ id: 'r'+Date.now(), title, freq, assignedTo, lastRun: null });
+            save(); runAutomationEngine(); render();
+        }
+
+        function removeAutomation(id) {
+            state.recurringTasks = state.recurringTasks.filter(r => r.id !== id);
+            save(); render();
+        }
+
+        function addStaff() {
+            const name = document.getElementById('st-name').value;
+            const email = document.getElementById('st-email').value;
+            const password = document.getElementById('st-pass').value;
+            const role = document.getElementById('st-role').value;
+            if(!name || !email || !password) return alert("Fill all fields");
+            state.users.push({ id: 'u'+Date.now(), name, email, password, role });
+            save(); render();
+        }
+
+        function deleteStaff(id) {
+            state.users = state.users.filter(u => u.id !== id);
+            save(); render();
+        }
+
+        function setupAdmin() {
+            const name = document.getElementById('s-name').value;
+            const email = document.getElementById('s-email').value;
+            const password = document.getElementById('s-pass').value;
+            if(!name || !email || !password) return;
+            state.users.push({ id: 'u1', name, email, password, role: 'Admin' });
+            save(); render();
+        }
+
+        function logout() { state.session = null; render(); }
 
     </script>
 </body>
